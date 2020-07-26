@@ -1,0 +1,1240 @@
+------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table3.log
+  log type:  text
+ opened on:  24 Jul 2018, 12:53:09
+
+. 
+. ****************************************************************
+. * PROGRAM: STAR_Table3
+. * PROGRAMMER: Bruno Ferman (based on program written by Simone Schaner)
+. * PURPOSE: Makes Table 3 of Angrist, Lang and Oreopoulos (2008) 
+. *****************************************************************
+. 
+. clear
+
+. use "/Users/youpengzhang/Desktop/2018_CGS/referee_report/empirics/STARdatapost/STAR_public_use.dta"
+
+. set mem 50m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly
+    automatically.
+
+. set more off
+
+. set linesize 200
+
+. 
+. use STAR_public_use, clear      
+
+. 
+. keep if noshow==0
+(85 observations deleted)
+
+. 
+. * CONTROLS
+. local basic  i.sex i.mtongue i.hsgroup i.numcourses_nov1
+
+. local all   i.sex i.sex i.mtongue i.hsgroup i.numcourses_nov1 i.lastmin i.mom_edn i.dad_edn
+
+. 
+. mat t3=J(26,8,.)
+
+. 
+. local i=0
+
+. foreach var in signup {
+  2. 
+. g var`i'=`var'
+  3. 
+.         xi: reg var`i' ssp sfp sfsp `basic', r
+  4.                 mat t3[2,`i'*2+1]=_b[ssp]
+  5.                 mat t3[3,`i'*2+1]=_se[ssp]
+  6.                 mat t3[4,`i'*2+1]=_b[sfp]
+  7.                 mat t3[5,`i'*2+1]=_se[sfp]
+  8.                 mat t3[6,`i'*2+1]=_b[sfsp]
+  9.                 mat t3[7,`i'*2+1]=_se[sfsp]
+ 10.                 mat t3[8,`i'*2+1]=e(N)
+ 11.         qui sum var`i' if e(sample) & cont 
+ 12.                 mat t3[1,`i'*2+1]=r(mean)
+ 13.                 
+.         xi: reg var`i' ssp sfp sfsp `all', r
+ 14.                 mat t3[2,`i'*2+2]=_b[ssp]
+ 15.                 mat t3[3,`i'*2+2]=_se[ssp]
+ 16.                 mat t3[4,`i'*2+2]=_b[sfp]
+ 17.                 mat t3[5,`i'*2+2]=_se[sfp]
+ 18.                 mat t3[6,`i'*2+2]=_b[sfsp]
+ 19.                 mat t3[7,`i'*2+2]=_se[sfsp]
+ 20.                 mat t3[8,`i'*2+2]=e(N)
+ 21.         qui sum var`i' if e(sample) & cont
+ 22.                 mat t3[1,`i'*2+2]=r(mean)
+ 23.                 
+.         xi: reg var`i' ssp sfp sfsp `basic' if sex=="M", r
+ 24.                 mat t3[11,`i'*2+1]=_b[ssp]
+ 25.                 mat t3[12,`i'*2+1]=_se[ssp]
+ 26.                 mat t3[13,`i'*2+1]=_b[sfp]
+ 27.                 mat t3[14,`i'*2+1]=_se[sfp]
+ 28.                 mat t3[15,`i'*2+1]=_b[sfsp]
+ 29.                 mat t3[16,`i'*2+1]=_se[sfsp]
+ 30.                 mat t3[17,`i'*2+1]=e(N)
+ 31.         qui sum var`i' if e(sample) & cont
+ 32.                 mat t3[10,`i'*2+1]=r(mean)
+ 33.         
+.         xi: reg var`i' ssp sfp sfsp `all' if sex=="M", r
+ 34.                 mat t3[11,`i'*2+2]=_b[ssp]
+ 35.                 mat t3[12,`i'*2+2]=_se[ssp]
+ 36.                 mat t3[13,`i'*2+2]=_b[sfp]
+ 37.                 mat t3[14,`i'*2+2]=_se[sfp]
+ 38.                 mat t3[15,`i'*2+2]=_b[sfsp]
+ 39.                 mat t3[16,`i'*2+2]=_se[sfsp]
+ 40.                 mat t3[17,`i'*2+2]=e(N)
+ 41.                 qui sum var`i' if e(sample) & cont
+ 42.                 mat t3[10,`i'*2+2]=r(mean)
+ 43. 
+.         xi: reg var`i' ssp sfp sfsp `basic' if sex=="F", r
+ 44.                 mat t3[20,`i'*2+1]=_b[ssp]
+ 45.                 mat t3[21,`i'*2+1]=_se[ssp]
+ 46.                 mat t3[22,`i'*2+1]=_b[sfp]
+ 47.                 mat t3[23,`i'*2+1]=_se[sfp]
+ 48.                 mat t3[24,`i'*2+1]=_b[sfsp]
+ 49.                 mat t3[25,`i'*2+1]=_se[sfsp]
+ 50.                 mat t3[26,`i'*2+1]=e(N)
+ 51.         qui sum var`i' if e(sample) & cont
+ 52.                 mat t3[19,`i'*2+1]=r(mean)
+ 53. 
+.         xi: reg var`i' ssp sfp sfsp `all' if sex=="F", r
+ 54.                 mat t3[20,`i'*2+2]=_b[ssp]
+ 55.                 mat t3[21,`i'*2+2]=_se[ssp]
+ 56.                 mat t3[22,`i'*2+2]=_b[sfp]
+ 57.                 mat t3[23,`i'*2+2]=_se[sfp]
+ 58.                 mat t3[24,`i'*2+2]=_b[sfsp]
+ 59.                 mat t3[25,`i'*2+2]=_se[sfsp]
+ 60.                 mat t3[26,`i'*2+2]=e(N)
+ 61.         qui sum var`i' if e(sample) & cont
+ 62.                 mat t3[19,`i'*2+2]=r(mean)
+ 63.                 drop var`i'
+ 64.                 local ++i
+ 65.         }
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+
+Linear regression                               Number of obs     =      1,571
+                                                F(12, 1558)       =     214.10
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.6510
+                                                Root MSE          =      .2662
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .5191045   .0322796    16.08   0.000     .4557885    .5824205
+          sfp |    .862833   .0215288    40.08   0.000     .8206046    .9050614
+         sfsp |   .7617103   .0359357    21.20   0.000     .6912228    .8321978
+      _Isex_2 |  -.0386482   .0139307    -2.77   0.006     -.065973   -.0113233
+  _Imtongue_2 |  -.0877013   .0763395    -1.15   0.251    -.2374404    .0620378
+  _Imtongue_3 |   .0027927   .0144594     0.19   0.847    -.0255693    .0311547
+  _Ihsgroup_2 |   .0039062   .0168007     0.23   0.816    -.0290482    .0368607
+  _Ihsgroup_3 |   .0332731   .0165485     2.01   0.045     .0008134    .0657329
+_Inumcourse_3 |  -.1846466   .1305538    -1.41   0.157    -.4407263     .071433
+_Inumcourse_4 |  -.0625496   .1243466    -0.50   0.615    -.3064539    .1813548
+_Inumcourse_5 |  -.0599951   .1243346    -0.48   0.629    -.3038759    .1838856
+_Inumcourse_6 |  -.0608086   .1243947    -0.49   0.625    -.3048072      .18319
+        _cons |   .0698096   .1236381     0.56   0.572     -.172705    .3123243
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,431
+                                                F(32, 1398)       =     102.74
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.6742
+                                                Root MSE          =      .2607
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .5491971   .0335928    16.35   0.000     .4832993    .6150948
+          sfp |   .8668538   .0224556    38.60   0.000     .8228034    .9109042
+         sfsp |   .7916393   .0363437    21.78   0.000     .7203452    .8629333
+      _Isex_2 |  -.0438465   .0144466    -3.04   0.002    -.0721858   -.0155073
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0919665   .0911111    -1.01   0.313    -.2706956    .0867626
+  _Imtongue_3 |   .0032098   .0150553     0.21   0.831    -.0263236    .0327432
+  _Ihsgroup_2 |   .0046412   .0176577     0.26   0.793    -.0299972    .0392797
+  _Ihsgroup_3 |   .0268936   .0169011     1.59   0.112    -.0062607    .0600479
+_Inumcourse_3 |  -.1826717   .1703509    -1.07   0.284    -.5168425    .1514992
+_Inumcourse_4 |  -.0685238   .1651088    -0.42   0.678    -.3924116    .2553639
+_Inumcourse_5 |  -.0694268   .1649979    -0.42   0.674     -.393097    .2542434
+_Inumcourse_6 |  -.0726486   .1651162    -0.44   0.660    -.3965508    .2512535
+  _Ilastmin_2 |  -.0312802   .0214267    -1.46   0.145    -.0733122    .0107517
+  _Ilastmin_3 |  -.0381289   .0193446    -1.97   0.049    -.0760764   -.0001814
+  _Ilastmin_4 |  -.0489958   .0219711    -2.23   0.026    -.0920957    -.005896
+  _Ilastmin_5 |  -.0530222   .0325039    -1.63   0.103    -.1167839    .0107395
+  _Imom_edn_2 |   .0147457   .0324875     0.45   0.650    -.0489838    .0784751
+  _Imom_edn_3 |  -.0328996   .0557016    -0.59   0.555    -.1421673     .076368
+  _Imom_edn_4 |    .041673   .0338416     1.23   0.218    -.0247128    .1080588
+  _Imom_edn_5 |   .0753726   .0407829     1.85   0.065    -.0046296    .1553748
+  _Imom_edn_6 |   .0495718   .0334377     1.48   0.138    -.0160218    .1151653
+  _Imom_edn_7 |   .1051127    .035513     2.96   0.003     .0354483    .1747772
+  _Imom_edn_8 |   .0158523   .0605218     0.26   0.793    -.1028711    .1345757
+  _Imom_edn_9 |   .0405384   .0453986     0.89   0.372    -.0485183    .1295951
+  _Idad_edn_2 |  -.0738016   .0296829    -2.49   0.013    -.1320294   -.0155739
+  _Idad_edn_3 |   .0050823   .0345921     0.15   0.883    -.0627757    .0729402
+  _Idad_edn_4 |   -.061214   .0294709    -2.08   0.038    -.1190258   -.0034021
+  _Idad_edn_5 |  -.0196832   .0421599    -0.47   0.641    -.1023867    .0630204
+  _Idad_edn_6 |  -.0674928   .0277432    -2.43   0.015    -.1219156   -.0130699
+  _Idad_edn_7 |   -.066241   .0310779    -2.13   0.033    -.1272052   -.0052767
+  _Idad_edn_8 |  -.0666269   .0414118    -1.61   0.108    -.1478629    .0146092
+  _Idad_edn_9 |  -.0489617    .040087    -1.22   0.222    -.1275989    .0296755
+        _cons |   .1345569   .1671816     0.80   0.421    -.1933969    .4625106
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        665
+                                                F(10, 653)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.5844
+                                                Root MSE          =     .28155
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .4465269   .0488291     9.14   0.000     .3506459     .542408
+          sfp |   .7924059   .0401109    19.76   0.000      .713644    .8711678
+         sfsp |   .7047014   .0578987    12.17   0.000     .5910113    .8183916
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0715894   .0208842    -3.43   0.001    -.1125978   -.0305811
+  _Imtongue_3 |  -.0128389   .0244883    -0.52   0.600    -.0609242    .0352465
+  _Ihsgroup_2 |    .018797   .0268445     0.70   0.484    -.0339148    .0715089
+  _Ihsgroup_3 |    .068165   .0269741     2.53   0.012     .0151985    .1211315
+_Inumcourse_3 |  -.1837071   .1541345    -1.19   0.234    -.4863662     .118952
+_Inumcourse_4 |  -.0504239   .1468737    -0.34   0.731    -.3388255    .2379778
+_Inumcourse_5 |  -.0290196   .1467371    -0.20   0.843    -.3171531    .2591138
+_Inumcourse_6 |  -.0645949    .146798    -0.44   0.660    -.3528479    .2236582
+        _cons |    .032444   .1446228     0.22   0.823    -.2515377    .3164258
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        594
+                                                F(30, 562)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.6146
+                                                Root MSE          =     .27728
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .4641141   .0515759     9.00   0.000      .362809    .5654192
+          sfp |   .8056776   .0403039    19.99   0.000      .726513    .8848422
+         sfsp |   .7075375   .0647904    10.92   0.000     .5802766    .8347985
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0069958   .0615147    -0.11   0.909    -.1278225     .113831
+  _Imtongue_3 |  -.0171954   .0263717    -0.65   0.515    -.0689946    .0346038
+  _Ihsgroup_2 |   .0264856   .0293693     0.90   0.368    -.0312014    .0841726
+  _Ihsgroup_3 |   .0717805   .0278929     2.57   0.010     .0169934    .1265675
+_Inumcourse_3 |  -.2018991   .1994588    -1.01   0.312     -.593675    .1898767
+_Inumcourse_4 |  -.0800542   .1930045    -0.41   0.678    -.4591524     .299044
+_Inumcourse_5 |  -.0637998   .1928465    -0.33   0.741    -.4425877    .3149882
+_Inumcourse_6 |  -.0994323   .1934067    -0.51   0.607    -.4793205    .2804559
+  _Ilastmin_2 |   .0056009   .0370335     0.15   0.880    -.0671401    .0783419
+  _Ilastmin_3 |  -.0103073   .0325456    -0.32   0.752    -.0742332    .0536186
+  _Ilastmin_4 |  -.0449158   .0380234    -1.18   0.238    -.1196012    .0297696
+  _Ilastmin_5 |   .0163191   .0531588     0.31   0.759    -.0880951    .1207334
+  _Imom_edn_2 |  -.0340435   .0532113    -0.64   0.523    -.1385608    .0704738
+  _Imom_edn_3 |  -.1331495   .0875881    -1.52   0.129    -.3051894    .0388904
+  _Imom_edn_4 |  -.0022371   .0548568    -0.04   0.967    -.1099865    .1055122
+  _Imom_edn_5 |   .1486905    .068408     2.17   0.030      .014324    .2830571
+  _Imom_edn_6 |     .03582   .0540669     0.66   0.508    -.0703779    .1420178
+  _Imom_edn_7 |   .0249694   .0569802     0.44   0.661    -.0869509    .1368896
+  _Imom_edn_8 |  -.0091445   .1007126    -0.09   0.928    -.2069636    .1886746
+  _Imom_edn_9 |  -.0173827   .0729269    -0.24   0.812    -.1606253    .1258598
+  _Idad_edn_2 |  -.0735978   .0536972    -1.37   0.171    -.1790694    .0318738
+  _Idad_edn_3 |   .0098351   .0595129     0.17   0.869    -.1070598    .1267301
+  _Idad_edn_4 |  -.0761883   .0531652    -1.43   0.152     -.180615    .0282384
+  _Idad_edn_5 |   .0207839   .0657223     0.32   0.752    -.1083074    .1498752
+  _Idad_edn_6 |  -.0778333   .0496401    -1.57   0.117    -.1753361    .0196696
+  _Idad_edn_7 |  -.0416435   .0537996    -0.77   0.439    -.1473163    .0640293
+  _Idad_edn_8 |  -.0001957   .0671663    -0.00   0.998    -.1321234     .131732
+  _Idad_edn_9 |  -.0232135   .0653022    -0.36   0.722    -.1514798    .1050528
+        _cons |   .1217641   .1998208     0.61   0.543    -.2707228     .514251
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        906
+                                                F(10, 894)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.7016
+                                                Root MSE          =     .25234
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .5712492   .0427783    13.35   0.000     .4872916    .6552068
+          sfp |    .911531   .0235173    38.76   0.000     .8653755    .9576865
+         sfsp |   .7996629   .0456255    17.53   0.000     .7101174    .8892084
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0832232   .0950018    -0.88   0.381    -.2696757    .1032293
+  _Imtongue_3 |   .0114042   .0173617     0.66   0.511    -.0226702    .0454787
+  _Ihsgroup_2 |  -.0060104   .0212908    -0.28   0.778    -.0477962    .0357754
+  _Ihsgroup_3 |   .0098044   .0207442     0.47   0.637    -.0309085    .0505174
+_Inumcourse_3 |  -.3153943   .0797168    -3.96   0.000    -.4718482   -.1589404
+_Inumcourse_4 |  -.1999676   .0472891    -4.23   0.000    -.2927782   -.1071569
+_Inumcourse_5 |  -.2109493    .046602    -4.53   0.000    -.3024113   -.1194873
+_Inumcourse_6 |  -.1923388   .0477461    -4.03   0.000    -.2860464   -.0986313
+        _cons |   .2003371   .0456255     4.39   0.000     .1107916    .2898826
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        837
+                                                F(30, 805)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.7286
+                                                Root MSE          =     .24528
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .6052115   .0437089    13.85   0.000     .5194146    .6910084
+          sfp |   .9078128   .0255876    35.48   0.000     .8575864    .9580392
+         sfsp |   .8350903   .0430908    19.38   0.000     .7505067    .9196738
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.1141168   .1105604    -1.03   0.302    -.3311374    .1029039
+  _Imtongue_3 |   .0194156   .0181954     1.07   0.286    -.0163004    .0551317
+  _Ihsgroup_2 |  -.0072448    .021514    -0.34   0.736     -.049475    .0349853
+  _Ihsgroup_3 |  -.0020187    .021183    -0.10   0.924    -.0435993    .0395618
+_Inumcourse_3 |  -.2882036   .0867431    -3.32   0.001     -.458473   -.1179343
+_Inumcourse_4 |  -.1671746    .055164    -3.03   0.003    -.2754569   -.0588924
+_Inumcourse_5 |  -.1750496   .0528849    -3.31   0.001    -.2788581   -.0712411
+_Inumcourse_6 |   -.158212    .054689    -2.89   0.004    -.2655618   -.0508622
+  _Ilastmin_2 |  -.0668168   .0253169    -2.64   0.008    -.1165118   -.0171218
+  _Ilastmin_3 |  -.0695802   .0227591    -3.06   0.002    -.1142543   -.0249061
+  _Ilastmin_4 |  -.0705416   .0262826    -2.68   0.007    -.1221321    -.018951
+  _Ilastmin_5 |  -.0965782   .0395341    -2.44   0.015    -.1741802   -.0189761
+  _Imom_edn_2 |   .0580423   .0422546     1.37   0.170    -.0248999    .1409846
+  _Imom_edn_3 |   .0225532   .0701531     0.32   0.748    -.1151514    .1602579
+  _Imom_edn_4 |   .0821764   .0434141     1.89   0.059    -.0030418    .1673947
+  _Imom_edn_5 |   .0457126   .0528112     0.87   0.387    -.0579512    .1493765
+  _Imom_edn_6 |   .0695335   .0437133     1.59   0.112    -.0162721     .155339
+  _Imom_edn_7 |   .1703475   .0464498     3.67   0.000     .0791706    .2615244
+  _Imom_edn_8 |   .0514399   .0730531     0.70   0.482    -.0919572     .194837
+  _Imom_edn_9 |   .1063287   .0557628     1.91   0.057    -.0031289    .2157864
+  _Idad_edn_2 |  -.0635644    .035772    -1.78   0.076    -.1337817     .006653
+  _Idad_edn_3 |  -.0051204    .045213    -0.11   0.910    -.0938697    .0836288
+  _Idad_edn_4 |  -.0435397   .0358387    -1.21   0.225     -.113888    .0268087
+  _Idad_edn_5 |  -.0405304   .0557071    -0.73   0.467    -.1498788    .0688181
+  _Idad_edn_6 |  -.0592216   .0345336    -1.71   0.087    -.1270081    .0085649
+  _Idad_edn_7 |  -.0749498   .0390675    -1.92   0.055    -.1516359    .0017363
+  _Idad_edn_8 |  -.1235016    .054503    -2.27   0.024    -.2304865   -.0165168
+  _Idad_edn_9 |  -.0705773   .0526429    -1.34   0.180    -.1739109    .0327563
+        _cons |   .2168392   .0656533     3.30   0.001     .0879673    .3457112
+-------------------------------------------------------------------------------
+
+.         
+. 
+. foreach var in used_ssp used_adv used_fsg {
+  2. 
+. g var`i'=`var'
+  3. 
+.         xi: reg var`i' ssp sfp sfsp `basic', r
+  4.                 mat t3[2,`i'*2+1]=_b[ssp]
+  5.                 mat t3[3,`i'*2+1]=_se[ssp]
+  6.                 mat t3[6,`i'*2+1]=_b[sfsp]
+  7.                 mat t3[7,`i'*2+1]=_se[sfsp]
+  8.                 mat t3[8,`i'*2+1]=e(N)
+  9.         qui sum var`i' if e(sample) & cont 
+ 10.                 mat t3[1,`i'*2+1]=r(mean)
+ 11.                 
+.         xi: reg var`i' ssp sfp sfsp `all', r
+ 12.                 mat t3[2,`i'*2+2]=_b[ssp]
+ 13.                 mat t3[3,`i'*2+2]=_se[ssp]
+ 14.                 mat t3[6,`i'*2+2]=_b[sfsp]
+ 15.                 mat t3[7,`i'*2+2]=_se[sfsp]
+ 16.                 mat t3[8,`i'*2+2]=e(N)
+ 17.         qui sum var`i' if e(sample) & cont
+ 18.                 mat t3[1,`i'*2+2]=r(mean)
+ 19.                 
+.         xi: reg var`i' ssp sfp sfsp `basic' if sex=="M", r
+ 20.                 mat t3[11,`i'*2+1]=_b[ssp]
+ 21.                 mat t3[12,`i'*2+1]=_se[ssp]
+ 22.                 mat t3[15,`i'*2+1]=_b[sfsp]
+ 23.                 mat t3[16,`i'*2+1]=_se[sfsp]
+ 24.                 mat t3[17,`i'*2+1]=e(N)
+ 25.         qui sum var`i' if e(sample) & cont
+ 26.                 mat t3[10,`i'*2+1]=r(mean)
+ 27.         
+.         xi: reg var`i' ssp sfp sfsp `all' if sex=="M", r
+ 28.                 mat t3[11,`i'*2+2]=_b[ssp]
+ 29.                 mat t3[12,`i'*2+2]=_se[ssp]
+ 30.                 mat t3[15,`i'*2+2]=_b[sfsp]
+ 31.                 mat t3[16,`i'*2+2]=_se[sfsp]
+ 32.                 mat t3[17,`i'*2+2]=e(N)
+ 33.                 qui sum var`i' if e(sample) & cont
+ 34.                 mat t3[10,`i'*2+2]=r(mean)
+ 35. 
+.         xi: reg var`i' ssp sfp sfsp `basic' if sex=="F", r
+ 36.                 mat t3[20,`i'*2+1]=_b[ssp]
+ 37.                 mat t3[21,`i'*2+1]=_se[ssp]
+ 38.                 mat t3[24,`i'*2+1]=_b[sfsp]
+ 39.                 mat t3[25,`i'*2+1]=_se[sfsp]
+ 40.                 mat t3[26,`i'*2+1]=e(N)
+ 41.         qui sum var`i' if e(sample) & cont
+ 42.                 mat t3[19,`i'*2+1]=r(mean)
+ 43. 
+.         xi: reg var`i' ssp sfp sfsp `all' if sex=="F", r
+ 44.                 mat t3[20,`i'*2+2]=_b[ssp]
+ 45.                 mat t3[21,`i'*2+2]=_se[ssp]
+ 46.                 mat t3[24,`i'*2+2]=_b[sfsp]
+ 47.                 mat t3[25,`i'*2+2]=_se[sfsp]
+ 48.                 mat t3[26,`i'*2+2]=e(N)
+ 49.         qui sum var`i' if e(sample) & cont
+ 50.                 mat t3[19,`i'*2+2]=r(mean)
+ 51.                 drop var`i'
+ 52.                 local ++i
+ 53.         }
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+
+Linear regression                               Number of obs     =      1,571
+                                                F(12, 1558)       =      14.75
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.2824
+                                                Root MSE          =     .21978
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2380772   .0275962     8.63   0.000     .1839475    .2922068
+          sfp |   -.001144   .0020818    -0.55   0.583    -.0052275    .0029395
+         sfsp |   .4120813   .0414617     9.94   0.000     .3307547     .493408
+      _Isex_2 |  -.0245853   .0113022    -2.18   0.030    -.0467545   -.0024162
+  _Imtongue_2 |  -.0515259   .0315624    -1.63   0.103    -.1134352    .0103834
+  _Imtongue_3 |   .0099404   .0123403     0.81   0.421     -.014265    .0341458
+  _Ihsgroup_2 |   .0114533     .01325     0.86   0.388    -.0145364    .0374431
+  _Ihsgroup_3 |   .0126756   .0134732     0.94   0.347    -.0137518     .039103
+_Inumcourse_3 |    .108612   .0737647     1.47   0.141    -.0360766    .2533006
+_Inumcourse_4 |   .1671908   .0722341     2.31   0.021     .0255046    .3088771
+_Inumcourse_5 |    .183493   .0721769     2.54   0.011     .0419188    .3250671
+_Inumcourse_6 |   .1614814    .072114     2.24   0.025     .0200307     .302932
+        _cons |  -.1685144   .0722927    -2.33   0.020    -.3103156   -.0267132
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,431
+                                                F(32, 1398)       =       5.69
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.3086
+                                                Root MSE          =     .22127
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2548052   .0294492     8.65   0.000     .1970358    .3125745
+          sfp |  -.0009942   .0036681    -0.27   0.786    -.0081898    .0062014
+         sfsp |   .4305171   .0440921     9.76   0.000     .3440232    .5170109
+      _Isex_2 |  -.0296337    .012112    -2.45   0.015    -.0533932   -.0058741
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0567764   .0398645    -1.42   0.155    -.1349771    .0214244
+  _Imtongue_3 |   .0036244   .0134857     0.27   0.788      -.02283    .0300789
+  _Ihsgroup_2 |     .01141   .0144104     0.79   0.429    -.0168582    .0396783
+  _Ihsgroup_3 |   .0033677   .0139628     0.24   0.809    -.0240225     .030758
+_Inumcourse_3 |   .1808969   .0882814     2.05   0.041     .0077185    .3540753
+_Inumcourse_4 |    .255766   .0874646     2.92   0.004     .0841901     .427342
+_Inumcourse_5 |   .2656633    .087119     3.05   0.002     .0947653    .4365613
+_Inumcourse_6 |     .24434   .0869205     2.81   0.005     .0738313    .4148488
+  _Ilastmin_2 |  -.0274351   .0209613    -1.31   0.191    -.0685541    .0136839
+  _Ilastmin_3 |  -.0267204   .0201124    -1.33   0.184    -.0661741    .0127334
+  _Ilastmin_4 |  -.0252194   .0222611    -1.13   0.257    -.0688881    .0184494
+  _Ilastmin_5 |  -.0166946   .0297615    -0.56   0.575    -.0750766    .0416874
+  _Imom_edn_2 |  -.0078653   .0298587    -0.26   0.792     -.066438    .0507074
+  _Imom_edn_3 |  -.0461302   .0332665    -1.39   0.166    -.1113879    .0191275
+  _Imom_edn_4 |   .0322291    .032002     1.01   0.314    -.0305479    .0950061
+  _Imom_edn_5 |   .0230345   .0406976     0.57   0.571    -.0568005    .1028694
+  _Imom_edn_6 |   .0204843   .0319493     0.64   0.522    -.0421895    .0831581
+  _Imom_edn_7 |   .0404494   .0356926     1.13   0.257    -.0295673    .1104662
+  _Imom_edn_8 |  -.0141878   .0513658    -0.28   0.782    -.1149503    .0865746
+  _Imom_edn_9 |   .0429612   .0394307     1.09   0.276    -.0343884    .1203109
+  _Idad_edn_2 |  -.0448149   .0283302    -1.58   0.114    -.1003892    .0107594
+  _Idad_edn_3 |  -.0073672   .0321426    -0.23   0.819      -.07042    .0556857
+  _Idad_edn_4 |  -.0331824   .0296939    -1.12   0.264    -.0914319    .0250671
+  _Idad_edn_5 |   -.064429    .037262    -1.73   0.084    -.1375244    .0086664
+  _Idad_edn_6 |  -.0255941   .0289981    -0.88   0.378    -.0824787    .0312904
+  _Idad_edn_7 |  -.0339475   .0311683    -1.09   0.276    -.0950892    .0271942
+  _Idad_edn_8 |  -.0164096     .04059    -0.40   0.686    -.0960335    .0632143
+  _Idad_edn_9 |  -.0704446    .033571    -2.10   0.036    -.1362997   -.0045896
+        _cons |  -.2056293   .0930459    -2.21   0.027    -.3881539   -.0231046
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        665
+                                                F(10, 653)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2216
+                                                Root MSE          =     .20667
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1937105   .0389177     4.98   0.000     .1172915    .2701295
+          sfp |   .0021301   .0044985     0.47   0.636    -.0067032    .0109634
+         sfsp |   .2981786   .0576746     5.17   0.000     .1849285    .4114287
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0411044   .0165969    -2.48   0.014    -.0736941   -.0085147
+  _Imtongue_3 |   .0042107   .0185524     0.23   0.821    -.0322188    .0406402
+  _Ihsgroup_2 |   .0313927   .0181042     1.73   0.083    -.0041568    .0669422
+  _Ihsgroup_3 |   .0199461   .0198139     1.01   0.314    -.0189606    .0588528
+_Inumcourse_3 |   .0953482   .0590247     1.62   0.107    -.0205529    .2112493
+_Inumcourse_4 |   .0833321   .0559683     1.49   0.137    -.0265675    .1932317
+_Inumcourse_5 |   .1506328   .0576543     2.61   0.009     .0374226    .2638431
+_Inumcourse_6 |   .0975508   .0561423     1.74   0.083    -.0126904    .2077921
+        _cons |  -.1294746   .0556029    -2.33   0.020    -.2386565   -.0202926
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        594
+                                                F(30, 562)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2420
+                                                Root MSE          =     .20793
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2056218   .0421037     4.88   0.000     .1229219    .2883217
+          sfp |   .0081193   .0077183     1.05   0.293    -.0070409    .0232795
+         sfsp |   .2912282    .063011     4.62   0.000     .1674623    .4149941
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0485422   .0559382    -0.87   0.386    -.1584157    .0613314
+  _Imtongue_3 |  -.0098263    .020297    -0.48   0.628    -.0496936     .030041
+  _Ihsgroup_2 |   .0317963   .0195478     1.63   0.104    -.0065994     .070192
+  _Ihsgroup_3 |   .0083977   .0205329     0.41   0.683    -.0319329    .0487283
+_Inumcourse_3 |   .1542291   .0770522     2.00   0.046     .0028837    .3055745
+_Inumcourse_4 |   .1632292   .0758348     2.15   0.032      .014275    .3121835
+_Inumcourse_5 |    .225903   .0777329     2.91   0.004     .0732205    .3785854
+_Inumcourse_6 |    .167551    .075641     2.22   0.027     .0189773    .3161246
+  _Ilastmin_2 |  -.0263992   .0266507    -0.99   0.322    -.0787463    .0259479
+  _Ilastmin_3 |     -.0312   .0260153    -1.20   0.231     -.082299    .0198991
+  _Ilastmin_4 |  -.0145139   .0313887    -0.46   0.644    -.0761673    .0471395
+  _Ilastmin_5 |   .0208143   .0525558     0.40   0.692    -.0824154     .124044
+  _Imom_edn_2 |  -.0452573   .0481098    -0.94   0.347    -.1397542    .0492397
+  _Imom_edn_3 |  -.0526164   .0456717    -1.15   0.250    -.1423245    .0370917
+  _Imom_edn_4 |   .0110839   .0504934     0.22   0.826     -.088095    .1102628
+  _Imom_edn_5 |   .0016695   .0772903     0.02   0.983    -.1501436    .1534825
+  _Imom_edn_6 |   .0118198   .0510481     0.23   0.817    -.0884486    .1120881
+  _Imom_edn_7 |  -.0411196   .0502312    -0.82   0.413    -.1397834    .0575443
+  _Imom_edn_8 |  -.0196872   .0841379    -0.23   0.815    -.1849502    .1455759
+  _Imom_edn_9 |   .0024316   .0610753     0.04   0.968    -.1175321    .1223953
+  _Idad_edn_2 |  -.0292551   .0498682    -0.59   0.558     -.127206    .0686957
+  _Idad_edn_3 |  -.0545932   .0410854    -1.33   0.184    -.1352928    .0261064
+  _Idad_edn_4 |  -.0600611   .0489364    -1.23   0.220    -.1561817    .0360595
+  _Idad_edn_5 |  -.0409082   .0641209    -0.64   0.524    -.1668542    .0850378
+  _Idad_edn_6 |  -.0443788   .0488934    -0.91   0.364     -.140415    .0516574
+  _Idad_edn_7 |   -.037787   .0522711    -0.72   0.470    -.1404577    .0648836
+  _Idad_edn_8 |   .0050226   .0660753     0.08   0.939    -.1247621    .1348074
+  _Idad_edn_9 |   -.076014   .0543551    -1.40   0.163    -.1827779    .0307499
+        _cons |  -.1268658   .0900662    -1.41   0.160    -.3037732    .0500417
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        906
+                                                F(10, 894)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3451
+                                                Root MSE          =     .22449
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2732195    .038421     7.11   0.000     .1978137    .3486254
+          sfp |  -.0009781   .0026735    -0.37   0.715    -.0062252    .0042689
+         sfsp |   .5056026   .0561522     9.00   0.000     .3953972     .615808
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0457731   .0438725    -1.04   0.297    -.1318781    .0403319
+  _Imtongue_3 |   .0124661   .0163825     0.76   0.447    -.0196864    .0446187
+  _Ihsgroup_2 |  -.0047306   .0186416    -0.25   0.800    -.0413171    .0318558
+  _Ihsgroup_3 |   .0110903   .0178759     0.62   0.535    -.0239932    .0461739
+_Inumcourse_3 |    .364122   .0631915     5.76   0.000      .240101    .4881429
+_Inumcourse_4 |   .5240254   .0590061     8.88   0.000     .4082188     .639832
+_Inumcourse_5 |    .498377    .058004     8.59   0.000     .3845372    .6122169
+_Inumcourse_6 |   .4958918     .05847     8.48   0.000     .3811375    .6106462
+        _cons |  -.5056026   .0561522    -9.00   0.000     -.615808   -.3953972
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        837
+                                                F(30, 805)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3832
+                                                Root MSE          =     .22595
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2871697   .0404348     7.10   0.000     .2077996    .3665397
+          sfp |  -.0054199   .0058464    -0.93   0.354    -.0168959    .0060561
+         sfsp |   .5320392   .0575898     9.24   0.000     .4189954    .6450831
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0591481   .0539146    -1.10   0.273    -.1649779    .0466818
+  _Imtongue_3 |   .0139309   .0178325     0.78   0.435    -.0210729    .0489346
+  _Ihsgroup_2 |   -.002471   .0203871    -0.12   0.904    -.0424892    .0375471
+  _Ihsgroup_3 |   .0028215   .0190437     0.15   0.882    -.0345597    .0402026
+_Inumcourse_3 |   .3742328   .0731472     5.12   0.000     .2306511    .5178145
+_Inumcourse_4 |   .5422298   .0683218     7.94   0.000     .4081198    .6763397
+_Inumcourse_5 |    .514797    .066761     7.71   0.000     .3837508    .6458433
+_Inumcourse_6 |    .515927   .0670326     7.70   0.000     .3843476    .6475064
+  _Ilastmin_2 |  -.0354476   .0323672    -1.10   0.274    -.0989816    .0280865
+  _Ilastmin_3 |  -.0308661   .0309733    -1.00   0.319    -.0916642    .0299319
+  _Ilastmin_4 |  -.0412513   .0334782    -1.23   0.218    -.1069662    .0244635
+  _Ilastmin_5 |  -.0406656   .0377372    -1.08   0.282    -.1147405    .0334093
+  _Imom_edn_2 |     .01285   .0393338     0.33   0.744    -.0643589    .0900589
+  _Imom_edn_3 |  -.0572926   .0499422    -1.15   0.252    -.1553249    .0407397
+  _Imom_edn_4 |   .0519124   .0419213     1.24   0.216    -.0303756    .1342003
+  _Imom_edn_5 |    .056262   .0468665     1.20   0.230     -.035733    .1482569
+  _Imom_edn_6 |   .0309111    .041427     0.75   0.456    -.0504065    .1122287
+  _Imom_edn_7 |   .0996593   .0519575     1.92   0.055    -.0023288    .2016474
+  _Imom_edn_8 |  -.0029413    .064638    -0.05   0.964    -.1298203    .1239377
+  _Imom_edn_9 |   .1007104   .0510704     1.97   0.049     .0004635    .2009572
+  _Idad_edn_2 |  -.0482008   .0357445    -1.35   0.178    -.1183643    .0219627
+  _Idad_edn_3 |   .0039097   .0423005     0.09   0.926    -.0791227     .086942
+  _Idad_edn_4 |  -.0163602   .0375855    -0.44   0.663    -.0901374     .057417
+  _Idad_edn_5 |  -.0699414    .046508    -1.50   0.133    -.1612327    .0213499
+  _Idad_edn_6 |  -.0149132   .0367259    -0.41   0.685     -.087003    .0571766
+  _Idad_edn_7 |   -.035021   .0404305    -0.87   0.387    -.1143828    .0443407
+  _Idad_edn_8 |  -.0454076   .0527389    -0.86   0.390    -.1489296    .0581143
+  _Idad_edn_9 |  -.0877908   .0440035    -2.00   0.046    -.1741659   -.0014158
+        _cons |  -.4944995   .0788741    -6.27   0.000    -.6493226   -.3396764
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+
+Linear regression                               Number of obs     =      1,571
+                                                F(12, 1558)       =      12.58
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.2577
+                                                Root MSE          =     .21219
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2042951   .0261964     7.80   0.000     .1529113     .255679
+          sfp |  -.0011837   .0018941    -0.62   0.532     -.004899    .0025316
+         sfsp |   .3826423   .0409529     9.34   0.000     .3023138    .4629709
+      _Isex_2 |  -.0275968   .0108229    -2.55   0.011    -.0488257   -.0063679
+  _Imtongue_2 |  -.0408636   .0276543    -1.48   0.140    -.0951072    .0133799
+  _Imtongue_3 |   .0047728   .0119256     0.40   0.689    -.0186191    .0281648
+  _Ihsgroup_2 |   .0124478   .0130166     0.96   0.339    -.0130842    .0379798
+  _Ihsgroup_3 |    .002175   .0128541     0.17   0.866    -.0230381    .0273881
+_Inumcourse_3 |   .1040772    .068399     1.52   0.128    -.0300865     .238241
+_Inumcourse_4 |    .156226   .0669333     2.33   0.020     .0249372    .2875149
+_Inumcourse_5 |    .166049   .0668923     2.48   0.013     .0348407    .2972574
+_Inumcourse_6 |   .1512473   .0667915     2.26   0.024     .0202366     .282258
+        _cons |  -.1496724   .0669507    -2.24   0.026    -.2809953   -.0183495
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,431
+                                                F(32, 1398)       =       4.78
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.2787
+                                                Root MSE          =     .21393
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2172743   .0281016     7.73   0.000     .1621485    .2724002
+          sfp |  -.0022508     .00335    -0.67   0.502    -.0088223    .0043208
+         sfsp |   .3972853   .0434801     9.14   0.000     .3119921    .4825785
+      _Isex_2 |  -.0326392   .0116717    -2.80   0.005    -.0555352   -.0097433
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0469516    .035041    -1.34   0.180    -.1156903     .021787
+  _Imtongue_3 |  -.0020463   .0131398    -0.16   0.876    -.0278222    .0237295
+  _Ihsgroup_2 |   .0125247   .0141976     0.88   0.378    -.0153262    .0403755
+  _Ihsgroup_3 |  -.0072694   .0133364    -0.55   0.586    -.0334309    .0188921
+_Inumcourse_3 |    .154704   .0813245     1.90   0.057    -.0048272    .3142352
+_Inumcourse_4 |   .2235855   .0806709     2.77   0.006     .0653364    .3818347
+_Inumcourse_5 |   .2274297    .080319     2.83   0.005      .069871    .3849884
+_Inumcourse_6 |   .2143537    .080167     2.67   0.008     .0570931    .3716144
+  _Ilastmin_2 |  -.0129615   .0194886    -0.67   0.506    -.0511915    .0252685
+  _Ilastmin_3 |   -.010169   .0186196    -0.55   0.585    -.0466943    .0263563
+  _Ilastmin_4 |  -.0111914   .0207073    -0.54   0.589    -.0518121    .0294294
+  _Ilastmin_5 |   .0035523   .0289154     0.12   0.902    -.0531698    .0602745
+  _Imom_edn_2 |  -.0050135   .0289622    -0.17   0.863    -.0618274    .0518005
+  _Imom_edn_3 |  -.0400908    .031201    -1.28   0.199    -.1012965     .021115
+  _Imom_edn_4 |    .019878   .0305859     0.65   0.516    -.0401213    .0798772
+  _Imom_edn_5 |    .027488   .0404758     0.68   0.497    -.0519118    .1068878
+  _Imom_edn_6 |   .0213819   .0311309     0.69   0.492    -.0396863    .0824502
+  _Imom_edn_7 |   .0333867   .0345359     0.97   0.334    -.0343611    .1011344
+  _Imom_edn_8 |   .0051965   .0499418     0.10   0.917    -.0927726    .1031655
+  _Imom_edn_9 |   .0313806   .0372806     0.84   0.400    -.0417513    .1045125
+  _Idad_edn_2 |  -.0391366   .0268801    -1.46   0.146    -.0918663    .0135932
+  _Idad_edn_3 |   .0035062   .0316793     0.11   0.912    -.0586378    .0656502
+  _Idad_edn_4 |  -.0215482   .0284481    -0.76   0.449    -.0773538    .0342573
+  _Idad_edn_5 |  -.0466066   .0363048    -1.28   0.199    -.1178243     .024611
+  _Idad_edn_6 |  -.0135193    .028051    -0.48   0.630    -.0685458    .0415073
+  _Idad_edn_7 |  -.0193301   .0302072    -0.64   0.522    -.0785864    .0399263
+  _Idad_edn_8 |  -.0383209   .0375967    -1.02   0.308    -.1120729    .0354312
+  _Idad_edn_9 |  -.0495199   .0318367    -1.56   0.120    -.1119728     .012933
+        _cons |  -.1867771   .0862267    -2.17   0.030    -.3559247   -.0176294
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        665
+                                                F(10, 653)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1999
+                                                Root MSE          =     .19319
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1453229   .0350417     4.15   0.000     .0765148     .214131
+          sfp |   .0017524   .0040282     0.44   0.664    -.0061575    .0096623
+         sfsp |   .2820767   .0566472     4.98   0.000     .1708441    .3933093
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0275571   .0148143    -1.86   0.063    -.0566464    .0015323
+  _Imtongue_3 |    .000112   .0176234     0.01   0.995    -.0344933    .0347174
+  _Ihsgroup_2 |   .0309638      .0172     1.80   0.072    -.0028101    .0647378
+  _Ihsgroup_3 |   .0066128   .0182158     0.36   0.717    -.0291558    .0423813
+_Inumcourse_3 |   .0942557   .0550346     1.71   0.087    -.0138104    .2023218
+_Inumcourse_4 |   .0777432   .0515208     1.51   0.132    -.0234232    .1789096
+_Inumcourse_5 |   .1367633   .0534333     2.56   0.011     .0318414    .2416852
+_Inumcourse_6 |   .0918605   .0516885     1.78   0.076    -.0096352    .1933562
+        _cons |   -.115819   .0512453    -2.26   0.024    -.2164445   -.0151935
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        594
+                                                F(30, 562)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2091
+                                                Root MSE          =     .19377
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1486382   .0375553     3.96   0.000     .0748722    .2224041
+          sfp |   .0032822   .0067276     0.49   0.626    -.0099322    .0164966
+         sfsp |   .2704993   .0613361     4.41   0.000     .1500233    .3909753
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0058732   .0494934    -0.12   0.906    -.1030879    .0913415
+  _Imtongue_3 |  -.0145877   .0190508    -0.77   0.444    -.0520072    .0228318
+  _Ihsgroup_2 |    .031392   .0186011     1.69   0.092    -.0051441    .0679281
+  _Ihsgroup_3 |  -.0030106   .0189078    -0.16   0.874    -.0401491    .0341279
+_Inumcourse_3 |   .1242764   .0696845     1.78   0.075    -.0125974    .2611503
+_Inumcourse_4 |   .1317826   .0685926     1.92   0.055    -.0029466    .2665118
+_Inumcourse_5 |    .185169   .0709554     2.61   0.009     .0457987    .3245392
+_Inumcourse_6 |   .1374347   .0692571     1.98   0.048     .0014004     .273469
+  _Ilastmin_2 |    .007003   .0222605     0.31   0.753     -.036721     .050727
+  _Ilastmin_3 |  -.0004753   .0216693    -0.02   0.983    -.0430381    .0420875
+  _Ilastmin_4 |   .0111998   .0264478     0.42   0.672    -.0407488    .0631484
+  _Ilastmin_5 |   .0537289   .0506294     1.06   0.289     -.045717    .1531748
+  _Imom_edn_2 |  -.0028589   .0424358    -0.07   0.946    -.0862111    .0804934
+  _Imom_edn_3 |  -.0148609   .0387582    -0.38   0.702    -.0909895    .0612677
+  _Imom_edn_4 |   .0290399   .0438523     0.66   0.508    -.0570945    .1151743
+  _Imom_edn_5 |    .052061   .0740473     0.70   0.482    -.0933824    .1975043
+  _Imom_edn_6 |   .0383908   .0453564     0.85   0.398    -.0506979    .1274795
+  _Imom_edn_7 |   .0048182   .0443444     0.11   0.914    -.0822828    .0919191
+  _Imom_edn_8 |   .0325615   .0799599     0.41   0.684    -.1244952    .1896183
+  _Imom_edn_9 |   .0050374   .0512387     0.10   0.922    -.0956054    .1056801
+  _Idad_edn_2 |  -.0281735    .045789    -0.62   0.539    -.1181121    .0617651
+  _Idad_edn_3 |   -.035448    .033622    -1.05   0.292    -.1014883    .0305922
+  _Idad_edn_4 |  -.0377112   .0464289    -0.81   0.417    -.1289066    .0534841
+  _Idad_edn_5 |  -.0245686   .0623455    -0.39   0.694    -.1470273      .09789
+  _Idad_edn_6 |   -.035884   .0463433    -0.77   0.439    -.1269112    .0551432
+  _Idad_edn_7 |  -.0268207     .05025    -0.53   0.594    -.1255214      .07188
+  _Idad_edn_8 |  -.0106733   .0608544    -0.18   0.861    -.1302032    .1088565
+  _Idad_edn_9 |   -.041513   .0493146    -0.84   0.400    -.1383764    .0553503
+        _cons |  -.1516009   .0771206    -1.97   0.050    -.3030807   -.0001211
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        906
+                                                F(10, 894)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3158
+                                                Root MSE          =     .22088
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |     .25067   .0374567     6.69   0.000     .1771568    .3241832
+          sfp |  -.0007911   .0024284    -0.33   0.745    -.0055572     .003975
+         sfsp |   .4658056   .0560438     8.31   0.000     .3558129    .5757983
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |   -.038066   .0407713    -0.93   0.351    -.1180847    .0419526
+  _Imtongue_3 |   .0055505   .0160999     0.34   0.730    -.0260475    .0371484
+  _Ihsgroup_2 |  -.0031034   .0185801    -0.17   0.867     -.039569    .0333622
+  _Ihsgroup_3 |   .0023141   .0174654     0.13   0.895    -.0319638     .036592
+_Inumcourse_3 |   .3393234   .0614051     5.53   0.000     .2188084    .4598384
+_Inumcourse_4 |   .4898215   .0592692     8.26   0.000     .3734985    .6061445
+_Inumcourse_5 |    .459464   .0579313     7.93   0.000     .3457668    .5731613
+_Inumcourse_6 |   .4635138   .0583564     7.94   0.000     .3489824    .5780452
+        _cons |  -.4658056   .0560438    -8.31   0.000    -.5757983   -.3558129
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        837
+                                                F(30, 805)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3503
+                                                Root MSE          =     .22304
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .2638621   .0397394     6.64   0.000     .1858569    .3418672
+          sfp |  -.0059178   .0055211    -1.07   0.284    -.0167552    .0049197
+         sfsp |   .4891421   .0575834     8.49   0.000     .3761108    .6021733
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0485007   .0525362    -0.92   0.356    -.1516247    .0546234
+  _Imtongue_3 |   .0067458   .0178418     0.38   0.705    -.0282761    .0417677
+  _Ihsgroup_2 |   -.001521   .0203198    -0.07   0.940    -.0414071    .0383651
+  _Ihsgroup_3 |  -.0068636   .0185826    -0.37   0.712    -.0433396    .0296124
+_Inumcourse_3 |   .3392711   .0707451     4.80   0.000     .2004045    .4781377
+_Inumcourse_4 |   .4944551   .0676478     7.31   0.000     .3616682    .6272421
+_Inumcourse_5 |   .4623967    .065589     7.05   0.000     .3336511    .5911422
+_Inumcourse_6 |   .4713995   .0660641     7.14   0.000     .3417214    .6010777
+  _Ilastmin_2 |    -.03531   .0314618    -1.12   0.262    -.0970668    .0264469
+  _Ilastmin_3 |  -.0227418   .0300949    -0.76   0.450    -.0818155     .036332
+  _Ilastmin_4 |   -.032863   .0327121    -1.00   0.315    -.0970742    .0313481
+  _Ilastmin_5 |  -.0289712   .0371424    -0.78   0.436    -.1018785    .0439362
+  _Imom_edn_2 |   .0013167   .0388817     0.03   0.973    -.0750048    .0776383
+  _Imom_edn_3 |  -.0627444   .0476499    -1.32   0.188     -.156277    .0307882
+  _Imom_edn_4 |   .0282195   .0408403     0.69   0.490    -.0519466    .1083855
+  _Imom_edn_5 |   .0412316   .0471712     0.87   0.382    -.0513615    .1338247
+  _Imom_edn_6 |    .023789   .0409286     0.58   0.561    -.0565503    .1041283
+  _Imom_edn_7 |    .064516   .0509443     1.27   0.206    -.0354832    .1645153
+  _Imom_edn_8 |   .0025426   .0627616     0.04   0.968    -.1206531    .1257382
+  _Imom_edn_9 |    .092063   .0505508     1.82   0.069     -.007164      .19129
+  _Idad_edn_2 |  -.0426502   .0340677    -1.25   0.211    -.1095222    .0242219
+  _Idad_edn_3 |    .015119   .0423159     0.36   0.721    -.0679436    .0981816
+  _Idad_edn_4 |  -.0131309    .036287    -0.36   0.718    -.0843593    .0580975
+  _Idad_edn_5 |  -.0545047    .044958    -1.21   0.226    -.1427535    .0337441
+  _Idad_edn_6 |  -.0013032   .0357463    -0.04   0.971    -.0714701    .0688637
+  _Idad_edn_7 |   -.015843   .0391616    -0.40   0.686    -.0927139    .0610279
+  _Idad_edn_8 |   -.071202   .0506534    -1.41   0.160    -.1706304    .0282264
+  _Idad_edn_9 |  -.0761713    .042111    -1.81   0.071    -.1588317    .0064891
+        _cons |  -.4418484    .077687    -5.69   0.000    -.5943414   -.2893554
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+
+Linear regression                               Number of obs     =      1,571
+                                                F(12, 1558)       =       4.09
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0983
+                                                Root MSE          =     .15558
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |    .106491   .0199133     5.35   0.000     .0674312    .1455507
+          sfp |  -.0004499   .0012134    -0.37   0.711    -.0028299    .0019301
+         sfsp |   .1313925   .0287841     4.56   0.000     .0749328    .1878521
+      _Isex_2 |  -.0019123    .008015    -0.24   0.811    -.0176337    .0138091
+  _Imtongue_2 |  -.0239657   .0162949    -1.47   0.142     -.055928    .0079966
+  _Imtongue_3 |   .0132544   .0092813     1.43   0.153    -.0049508    .0314596
+  _Ihsgroup_2 |   .0043386   .0087155     0.50   0.619    -.0127568    .0214339
+  _Ihsgroup_3 |   .0213903   .0097456     2.19   0.028     .0022744    .0405061
+_Inumcourse_3 |   .0247885   .0262492     0.94   0.345     -.026699     .076276
+_Inumcourse_4 |   .0560606   .0271209     2.07   0.039     .0028634    .1092579
+_Inumcourse_5 |   .0562044   .0269978     2.08   0.038     .0032485    .1091602
+_Inumcourse_6 |   .0530062   .0268534     1.97   0.049     .0003335    .1056789
+        _cons |  -.0651548   .0269919    -2.41   0.016    -.1180991   -.0122105
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,431
+                                                F(32, 1398)       =       1.58
+                                                Prob > F          =     0.0214
+                                                R-squared         =     0.1262
+                                                Root MSE          =     .15963
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1179139   .0214691     5.49   0.000     .0757988    .1600289
+          sfp |   .0019685   .0024593     0.80   0.424    -.0028559    .0067929
+         sfsp |   .1386343    .031328     4.43   0.000     .0771793    .2000894
+      _Isex_2 |  -.0040216   .0090176    -0.45   0.656    -.0217111    .0136678
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |   -.030009   .0240516    -1.25   0.212    -.0771901     .017172
+  _Imtongue_3 |   .0151994   .0104266     1.46   0.145     -.005254    .0356528
+  _Ihsgroup_2 |   .0060531   .0094712     0.64   0.523    -.0125262    .0246325
+  _Ihsgroup_3 |   .0237803   .0099904     2.38   0.017     .0041826    .0433781
+_Inumcourse_3 |   .0607885   .0335467     1.81   0.070    -.0050187    .1265958
+_Inumcourse_4 |   .0965422   .0346654     2.78   0.005     .0285404    .1645441
+_Inumcourse_5 |   .0914911    .034021     2.69   0.007     .0247534    .1582288
+_Inumcourse_6 |    .089508   .0338049     2.65   0.008     .0231941    .1558219
+  _Ilastmin_2 |  -.0342986   .0170611    -2.01   0.045    -.0677666   -.0008305
+  _Ilastmin_3 |  -.0272829   .0173793    -1.57   0.117    -.0613753    .0068095
+  _Ilastmin_4 |  -.0209366   .0189055    -1.11   0.268    -.0580228    .0161495
+  _Ilastmin_5 |   -.046541   .0175129    -2.66   0.008    -.0808953   -.0121867
+  _Imom_edn_2 |    .017745   .0212697     0.83   0.404     -.023979    .0594691
+  _Imom_edn_3 |  -.0104014   .0192066    -0.54   0.588    -.0480782    .0272755
+  _Imom_edn_4 |   .0260362   .0216595     1.20   0.230    -.0164525    .0685248
+  _Imom_edn_5 |   .0202009   .0289636     0.70   0.486    -.0366159    .0770177
+  _Imom_edn_6 |    .011385     .02067     0.55   0.582    -.0291626    .0519326
+  _Imom_edn_7 |   .0347189   .0256466     1.35   0.176    -.0155911    .0850289
+  _Imom_edn_8 |  -.0132029   .0314838    -0.42   0.675    -.0749635    .0485578
+  _Imom_edn_9 |   .0298454   .0255543     1.17   0.243    -.0202835    .0799742
+  _Idad_edn_2 |  -.0461229   .0247754    -1.86   0.063     -.094724    .0024782
+  _Idad_edn_3 |  -.0457574   .0221899    -2.06   0.039    -.0892865   -.0022284
+  _Idad_edn_4 |   -.055183   .0243354    -2.27   0.024    -.1029209   -.0074451
+  _Idad_edn_5 |  -.0575361   .0285771    -2.01   0.044    -.1135948   -.0014774
+  _Idad_edn_6 |  -.0458095   .0240076    -1.91   0.057    -.0929042    .0012853
+  _Idad_edn_7 |  -.0303197   .0264409    -1.15   0.252    -.0821878    .0215484
+  _Idad_edn_8 |   .0058552   .0367522     0.16   0.873    -.0662402    .0779505
+  _Idad_edn_9 |  -.0397152   .0258556    -1.54   0.125    -.0904353    .0110048
+        _cons |  -.0572217    .039227    -1.46   0.145    -.1341719    .0197285
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        665
+                                                F(10, 653)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.0917
+                                                Root MSE          =      .1518
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |     .09624   .0289819     3.32   0.001      .039331     .153149
+          sfp |  -.0000637   .0022043    -0.03   0.977    -.0043921    .0042646
+         sfsp |   .1152793   .0420587     2.74   0.006     .0326928    .1978659
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0280745    .012531    -2.24   0.025    -.0526805   -.0034685
+  _Imtongue_3 |  -.0036771   .0126514    -0.29   0.771    -.0285195    .0211652
+  _Ihsgroup_2 |   .0077681    .012419     0.63   0.532    -.0166178    .0321541
+  _Ihsgroup_3 |   .0252203   .0152554     1.65   0.099    -.0047352    .0551759
+_Inumcourse_3 |   .0281037    .026461     1.06   0.289    -.0238553    .0800627
+_Inumcourse_4 |   .0421523   .0278446     1.51   0.131    -.0125234    .0968281
+_Inumcourse_5 |   .0564627   .0283993     1.99   0.047     .0006977    .1122276
+_Inumcourse_6 |   .0369794   .0270299     1.37   0.172    -.0160966    .0900554
+        _cons |  -.0536085   .0262705    -2.04   0.042    -.1051934   -.0020236
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        594
+                                                F(30, 562)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1326
+                                                Root MSE          =     .15501
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1069817   .0315972     3.39   0.001     .0449187    .1690446
+          sfp |   .0037121   .0055994     0.66   0.508    -.0072861    .0147104
+         sfsp |   .1120196   .0459186     2.44   0.015     .0218267    .2022126
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0495173   .0544068    -0.91   0.363    -.1563828    .0573481
+  _Imtongue_3 |  -.0004663   .0149702    -0.03   0.975    -.0298707    .0289381
+  _Ihsgroup_2 |   .0125163   .0129694     0.97   0.335    -.0129582    .0379907
+  _Ihsgroup_3 |   .0293363   .0152002     1.93   0.054    -.0005198    .0591924
+_Inumcourse_3 |   .0595508   .0395704     1.50   0.133    -.0181731    .1372747
+_Inumcourse_4 |   .0784316   .0403493     1.94   0.052    -.0008223    .1576855
+_Inumcourse_5 |   .0848356   .0407067     2.08   0.038     .0048797    .1647916
+_Inumcourse_6 |   .0690882   .0379734     1.82   0.069    -.0054989    .1436753
+  _Ilastmin_2 |  -.0392627   .0204676    -1.92   0.056     -.079465    .0009396
+  _Ilastmin_3 |  -.0167517   .0218901    -0.77   0.444     -.059748    .0262446
+  _Ilastmin_4 |  -.0100236   .0270797    -0.37   0.711    -.0632133    .0431661
+  _Ilastmin_5 |  -.0422034   .0251461    -1.68   0.094    -.0915953    .0071884
+  _Imom_edn_2 |  -.0476069   .0527372    -0.90   0.367     -.151193    .0559791
+  _Imom_edn_3 |  -.0529607    .047717    -1.11   0.268    -.1466861    .0407647
+  _Imom_edn_4 |   -.025101   .0528085    -0.48   0.635    -.1288271    .0786252
+  _Imom_edn_5 |  -.0027234    .077399    -0.04   0.972    -.1547502    .1493033
+  _Imom_edn_6 |  -.0271078   .0534949    -0.51   0.613    -.1321821    .0779666
+  _Imom_edn_7 |   -.036847   .0530001    -0.70   0.487    -.1409495    .0672555
+  _Imom_edn_8 |  -.0278203   .0728635    -0.38   0.703    -.1709384    .1152977
+  _Imom_edn_9 |  -.0091173   .0583257    -0.16   0.876    -.1236804    .1054457
+  _Idad_edn_2 |  -.0451271   .0535602    -0.84   0.400    -.1503297    .0600756
+  _Idad_edn_3 |  -.0602847   .0435007    -1.39   0.166    -.1457284     .025159
+  _Idad_edn_4 |   -.067879   .0510848    -1.33   0.184    -.1682196    .0324616
+  _Idad_edn_5 |  -.0856001   .0538844    -1.59   0.113    -.1914395    .0202392
+  _Idad_edn_6 |   -.065638   .0514578    -1.28   0.203     -.166711    .0354351
+  _Idad_edn_7 |  -.0313357   .0552263    -0.57   0.571    -.1398108    .0771394
+  _Idad_edn_8 |  -.0190386   .0635512    -0.30   0.765    -.1438655    .1057883
+  _Idad_edn_9 |  -.0667227   .0516058    -1.29   0.197    -.1680866    .0346412
+        _cons |    .011007   .0615554     0.18   0.858    -.1098997    .1319137
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        906
+                                                F(10, 894)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1089
+                                                Root MSE          =     .15865
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1132755   .0272116     4.16   0.000     .0598695    .1666814
+          sfp |   -.000353   .0016926    -0.21   0.835    -.0036749     .002969
+         sfsp |   .1456338   .0397505     3.66   0.000     .0676187    .2236489
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0189812   .0211956    -0.90   0.371    -.0605801    .0226176
+  _Imtongue_3 |   .0244467   .0130276     1.88   0.061    -.0011215    .0500149
+  _Ihsgroup_2 |   .0015442    .012252     0.13   0.900    -.0225019    .0255903
+  _Ihsgroup_3 |   .0186891   .0127706     1.46   0.144    -.0063747    .0437529
+_Inumcourse_3 |   .0844121   .0381976     2.21   0.027     .0094446    .1593795
+_Inumcourse_4 |   .1382021      .0425     3.25   0.001     .0547907    .2216134
+_Inumcourse_5 |    .127938   .0411199     3.11   0.002     .0472352    .2086408
+_Inumcourse_6 |   .1340131    .041978     3.19   0.001     .0516262    .2163999
+        _cons |  -.1456338   .0397505    -3.66   0.000    -.2236489   -.0676187
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+note: _Isex_2 omitted because of collinearity
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =        837
+                                                F(30, 805)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1466
+                                                Root MSE          =     .16342
+
+-------------------------------------------------------------------------------
+              |               Robust
+         var3 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .1237062   .0291129     4.25   0.000     .0665599    .1808525
+          sfp |    .000043   .0041638     0.01   0.992    -.0081302    .0082163
+         sfsp |   .1548937   .0423685     3.66   0.000     .0717279    .2380595
+      _Isex_2 |          0  (omitted)
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0355136   .0294765    -1.20   0.229    -.0933734    .0223463
+  _Imtongue_3 |     .02635   .0139808     1.88   0.060    -.0010931     .053793
+  _Ihsgroup_2 |   .0022109   .0134327     0.16   0.869    -.0241563    .0285781
+  _Ihsgroup_3 |   .0192791   .0136547     1.41   0.158    -.0075239    .0460821
+_Inumcourse_3 |   .0825575   .0437044     1.89   0.059    -.0032306    .1683455
+_Inumcourse_4 |   .1464831   .0476702     3.07   0.002     .0529105    .2400557
+_Inumcourse_5 |   .1346214   .0454793     2.96   0.003     .0453494    .2238935
+_Inumcourse_6 |   .1394255   .0475261     2.93   0.003     .0461357    .2327153
+  _Ilastmin_2 |  -.0382314   .0271724    -1.41   0.160    -.0915684    .0151057
+  _Ilastmin_3 |  -.0445255   .0264066    -1.69   0.092    -.0963593    .0073084
+  _Ilastmin_4 |  -.0386306   .0282665    -1.37   0.172    -.0941154    .0168542
+  _Ilastmin_5 |  -.0564616   .0254055    -2.22   0.027    -.1063303   -.0065928
+  _Imom_edn_2 |   .0550626   .0241859     2.28   0.023     .0075878    .1025374
+  _Imom_edn_3 |   .0088927   .0223542     0.40   0.691    -.0349867    .0527721
+  _Imom_edn_4 |   .0541169   .0233681     2.32   0.021     .0082473    .0999865
+  _Imom_edn_5 |   .0268851   .0200026     1.34   0.179    -.0123784    .0661486
+  _Imom_edn_6 |   .0301337   .0202617     1.49   0.137    -.0096383    .0699058
+  _Imom_edn_7 |   .0792539   .0347169     2.28   0.023     .0111076    .1474002
+  _Imom_edn_8 |  -.0126676   .0263309    -0.48   0.631    -.0643528    .0390177
+  _Imom_edn_9 |   .0525222   .0272512     1.93   0.054    -.0009696    .1060141
+  _Idad_edn_2 |  -.0461642   .0272782    -1.69   0.091     -.099709    .0073806
+  _Idad_edn_3 |  -.0473662   .0270244    -1.75   0.080    -.1004129    .0056805
+  _Idad_edn_4 |  -.0462049   .0278876    -1.66   0.098     -.100946    .0085361
+  _Idad_edn_5 |  -.0334868   .0374203    -0.89   0.371    -.1069397     .039966
+  _Idad_edn_6 |  -.0322382   .0260567    -1.24   0.216    -.0833853     .018909
+  _Idad_edn_7 |  -.0375121   .0295078    -1.27   0.204    -.0954334    .0204093
+  _Idad_edn_8 |    .015991   .0466913     0.34   0.732    -.0756601     .107642
+  _Idad_edn_9 |  -.0261027   .0295651    -0.88   0.378    -.0841365     .031931
+        _cons |  -.1242159   .0526895    -2.36   0.019    -.2276408   -.0207909
+-------------------------------------------------------------------------------
+
+. 
+. 
+.         
+. mat colnames t3= sign_bas sign_all ssp_bas ssp_all adv_bas adv_all fsg_bas fsg_all
+
+. mat rownames t3= contmean ssp "x" sfp "x" sfsp "x" obs males contmean ssp "x" sfp "x" sfsp ///
+>                                 "x" obs females contmean ssp "x" sfp "x" sfsp "x" obs
+
+. 
+. 
+. mat li t3
+
+t3[26,8]
+           sign_bas   sign_all    ssp_bas    ssp_all    adv_bas    adv_all    fsg_bas    fsg_all
+contmean          0          0          0          0          0          0          0          0
+     ssp  .51910452  .54919706  .23807716  .25480517  .20429512  .21727434  .10649097  .11791386
+       x  .03227958  .03359282  .02759621  .02944919  .02619635   .0281016  .01991333  .02146907
+     sfp  .86283296  .86685379          .          .          .          .          .          .
+       x  .02152876  .02245563          .          .          .          .          .          .
+    sfsp   .7617103  .79163929  .41208133  .43051705  .38264231   .3972853  .13139248  .13863434
+       x  .03593573  .03634369  .04146172   .0440921  .04095286  .04348006  .02878409  .03132804
+     obs       1571       1431       1571       1431       1571       1431       1571       1431
+   males          .          .          .          .          .          .          .          .
+contmean          0          0          0          0          0          0          0          0
+     ssp  .44652695  .46411411  .19371053  .20562182  .14532292  .14863816  .09623999  .10698168
+       x  .04882913  .05157592  .03891774  .04210373  .03504173  .03755532  .02898191  .03159715
+     sfp  .79240589  .80567763          .          .          .          .          .          .
+       x   .0401109  .04030386          .          .          .          .          .          .
+    sfsp  .70470143  .70753752  .29817858  .29122819  .28207669   .2704993  .11527935  .11201965
+       x  .05789872  .06479041  .05767464  .06301103  .05664717  .06133609  .04205866  .04591855
+     obs        665        594        665        594        665        594        665        594
+ females          .          .          .          .          .          .          .          .
+contmean          0          0          0          0          0          0          0          0
+     ssp  .57124919   .6052115  .27321955  .28716967  .25066998  .26386205  .11327547   .1237062
+       x  .04277829  .04370891  .03842099  .04043477  .03745666  .03973944  .02721155  .02911295
+     sfp  .91153097  .90781282          .          .          .          .          .          .
+       x  .02351727  .02558764          .          .          .          .          .          .
+    sfsp  .79966292  .83509027  .50560259  .53203924  .46580562  .48914209  .14563381  .15489372
+       x  .04562547  .04309079  .05615216  .05758979  .05604378  .05758336  .03975048   .0423685
+     obs        906        837        906        837        906        837        906        837
+
+. log close
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table3.log
+  log type:  text
+ closed on:  24 Jul 2018, 12:53:12
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

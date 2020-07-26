@@ -1,0 +1,530 @@
+------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table8.log
+  log type:  text
+ opened on:  26 Jul 2018, 11:21:21
+
+. 
+. ****************************************************************
+. * PROGRAM: STAR_Table8
+. * PROGRAMMER: Bruno Ferman (based on program written by Simone Schaner)
+. * PURPOSE: Makes Table 8 of Angrist, Lang and Oreopoulos (2008) 
+. *****************************************************************
+. 
+. clear
+
+. use "/Users/youpengzhang/Desktop/2018_CGS/referee_report/empirics/STARdatapost/STAR_public_use.dta", clear
+
+. set mem 50m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly
+    automatically.
+
+. set more off
+
+. set linesize 200
+
+. 
+. use STAR_public_use, clear      
+
+. 
+. keep if noshow==0
+(85 observations deleted)
+
+. keep if sex=="F" /*This table uses only women*/
+(665 observations deleted)
+
+. 
+. * SAMPLE IN ALL CONTROLS SPEC
+. keep if sex~="" & mtongue~="" & hsgroup~=. & numcourses_nov1~=. & lastmin~=. & mom_edn~=. & dad_edn~=.
+(69 observations deleted)
+
+. 
+. * CONTROL SETS
+. local all    i.sex i.mtongue i.hsgroup i.numcourses_nov1 i.lastmin i.mom_edn i.dad_edn i.year
+
+. 
+. 
+. foreach var in prob_year goodstanding_year credits_earned {
+  2.         foreach num in 1 2 {
+  3.         replace `var'`num'=. if prob_year1==.
+  4.         }
+  5.         }
+(0 real changes made)
+(0 real changes made)
+(9 real changes made, 9 to missing)
+(9 real changes made, 9 to missing)
+(0 real changes made)
+(0 real changes made)
+
+. 
+. keep   sex mtongue hsgroup numcourses_nov1 lastmin mom_edn dad_edn GPA_year1 GPA_year2 ///
+>        ssp sfp sfsp control prob_year1 prob_year2 credits_earned* ssp_p sfp_p sfsp_p sfpany_p
+
+. 
+. 
+. gen id=_n
+
+.         
+. * STACK THE DATA
+. reshape long GPA_year goodstanding_year prob_year credits_earned, i(id) j(year)
+(note: j = 1 2)
+(note: goodstanding_year1 not found)
+(note: goodstanding_year2 not found)
+
+Data                               wide   ->   long
+-----------------------------------------------------------------------------
+Number of obs.                      837   ->    1674
+Number of variables                  22   ->      21
+j variable (2 values)                     ->   year
+xij variables:
+                    GPA_year1 GPA_year2   ->   GPA_year
+  goodstanding_year1 goodstanding_year2   ->   goodstanding_year
+                  prob_year1 prob_year2   ->   prob_year
+        credits_earned1 credits_earned2   ->   credits_earned
+-----------------------------------------------------------------------------
+
+. 
+. local i=0
+
+. mat t8=J(13,6,.)
+
+. 
+. foreach var in GPA_year prob_year credits_earned {
+  2.                 g var`i'=`var'
+  3.         xi: ivreg var`i' (ssp_p sfp_p sfsp_p = ssp sfsp sfp) `all' , r clu(id)
+  4.                 mat t8[3,`i'*2+1]=_b[ssp]
+  5.                 mat t8[4,`i'*2+1]=_se[ssp]
+  6.                 mat t8[5,`i'*2+1]=_b[sfp]
+  7.                 mat t8[6,`i'*2+1]=_se[sfp]
+  8.                 mat t8[7,`i'*2+1]=_b[sfsp]
+  9.                 mat t8[8,`i'*2+1]=_se[sfsp]
+ 10.                 mat t8[13,`i'*2+1]=e(N)
+ 11.         qui sum var`i' if e(sample) & cont
+ 12.                 mat t8[1,`i'*2+1]=r(mean)
+ 13.                 mat t8[2,`i'*2+1]=r(sd)
+ 14.         xi: ivreg var`i' (ssp_p sfpany_p= ssp sfsp sfp) `all'  , r clu(id) //partial(`all')
+ 15.                 mat t8[3,`i'*2+2]=_b[ssp]
+ 16.                 mat t8[4,`i'*2+2]=_se[ssp]
+ 17.                 mat t8[9,`i'*2+2]=_b[sfp]
+ 18.                 mat t8[10,`i'*2+2]=_se[sfp]
+ 19.                 mat t8[13,`i'*2+2]=e(N)
+ 20.         qui sum var`i' if e(sample) & cont
+ 21.                 mat t8[1,`i'*2+2]=r(mean)
+ 22.                 mat t8[2,`i'*2+2]=r(sd)         
+ 23. * OVERID TEST
+.                 mat t8[11,`i'*2+2]=e(j) /*e(N)*e(r2)*/ 
+ 24.                 mat t8[12,`i'*2+2]=e(jp) /*pval of test*/
+ 25.         drop var`i'
+ 26.         local ++i
+ 27.         }       
+(132 missing values generated)
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,542
+                                                F(31, 825)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.2283
+                                                Root MSE          =     .79809
+
+                                    (Std. Err. adjusted for 826 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0706952   .1255043     0.56   0.573    -.1756502    .3170406
+        sfp_p |   .0411377   .0806374     0.51   0.610     -.117141    .1994163
+       sfsp_p |   .3147009    .112435     2.80   0.005     .0940085    .5353932
+  _Imtongue_2 |  -.4001173   .2216112    -1.81   0.071    -.8351055    .0348709
+  _Imtongue_3 |  -.1397506   .0572122    -2.44   0.015    -.2520492   -.0274521
+  _Ihsgroup_2 |   .4343148   .0666627     6.52   0.000     .3034663    .5651633
+  _Ihsgroup_3 |   .8626018   .0621625    13.88   0.000     .7405866    .9846171
+_Inumcourse_3 |  -.4331096   .2004594    -2.16   0.031    -.8265801   -.0396392
+_Inumcourse_4 |  -.2762457   .1502817    -1.84   0.066    -.5712251    .0187337
+_Inumcourse_5 |  -.3161377   .1455679    -2.17   0.030    -.6018647   -.0304106
+_Inumcourse_6 |  -.3587278   .1464358    -2.45   0.015    -.6461583   -.0712973
+  _Ilastmin_2 |  -.0341727   .0993561    -0.34   0.731    -.2291933    .1608479
+  _Ilastmin_3 |   .0171929   .0928372     0.19   0.853    -.1650321    .1994179
+  _Ilastmin_4 |  -.0579703   .0996853    -0.58   0.561     -.253637    .1376963
+  _Ilastmin_5 |   .2728213   .1332649     2.05   0.041     .0112432    .5343994
+  _Imom_edn_2 |  -.0910114   .1039368    -0.88   0.381     -.295023    .1130002
+  _Imom_edn_3 |   .4751755   .1471441     3.23   0.001     .1863547    .7639964
+  _Imom_edn_4 |   .1073074   .1083126     0.99   0.322    -.1052934    .3199082
+  _Imom_edn_5 |  -.2442653   .1522038    -1.60   0.109    -.5430175    .0544868
+  _Imom_edn_6 |   .0914222   .1110021     0.82   0.410    -.1264574    .3093019
+  _Imom_edn_7 |   .0392373    .145056     0.27   0.787     -.245485    .3239597
+  _Imom_edn_8 |  -.0892727   .2171479    -0.41   0.681       -.5155    .3369547
+  _Imom_edn_9 |  -.0145651   .1479272    -0.10   0.922     -.304923    .2757929
+  _Idad_edn_2 |   .1106109   .1067351     1.04   0.300    -.0988934    .3201152
+  _Idad_edn_3 |   .1542829   .1687336     0.91   0.361    -.1769148    .4854805
+  _Idad_edn_4 |   .0770261   .1091459     0.71   0.481    -.1372102    .2912625
+  _Idad_edn_5 |  -.0840046   .1543521    -0.54   0.586    -.3869736    .2189643
+  _Idad_edn_6 |   .1687369   .1109954     1.52   0.129    -.0491297    .3866035
+  _Idad_edn_7 |   .1177881   .1253509     0.94   0.348    -.1282561    .3638324
+  _Idad_edn_8 |   .1745595   .1505018     1.16   0.246    -.1208521    .4699711
+  _Idad_edn_9 |  -.0097165   .1532553    -0.06   0.949    -.3105326    .2910997
+     _Iyear_2 |   .2862665   .0280203    10.22   0.000      .231267    .3412659
+        _cons |   1.522218   .1947186     7.82   0.000     1.140016     1.90442
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfp_p sfsp_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,542
+                                                F(30, 825)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.2246
+                                                Root MSE          =     .79975
+
+                                    (Std. Err. adjusted for 826 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var0 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0684663    .125521     0.55   0.586    -.1779117    .3148443
+     sfpany_p |   .1250725   .0704413     1.78   0.076    -.0131928    .2633378
+  _Imtongue_2 |   -.419712   .2269091    -1.85   0.065    -.8650989     .025675
+  _Imtongue_3 |  -.1416194   .0576294    -2.46   0.014    -.2547369   -.0285019
+  _Ihsgroup_2 |   .4278722   .0666354     6.42   0.000     .2970774     .558667
+  _Ihsgroup_3 |   .8504028   .0616579    13.79   0.000     .7293779    .9714277
+_Inumcourse_3 |   -.614215   .1851475    -3.32   0.001    -.9776305   -.2507994
+_Inumcourse_4 |  -.4592347   .1287088    -3.57   0.000    -.7118699   -.2065995
+_Inumcourse_5 |  -.4963719   .1206367    -4.11   0.000    -.7331629   -.2595809
+_Inumcourse_6 |  -.5425163   .1176098    -4.61   0.000     -.773366   -.3116667
+  _Ilastmin_2 |  -.0470893   .0990839    -0.48   0.635    -.2415755     .147397
+  _Ilastmin_3 |   .0044519   .0923944     0.05   0.962    -.1769039    .1858077
+  _Ilastmin_4 |  -.0677065   .0994699    -0.68   0.496    -.2629504    .1275373
+  _Ilastmin_5 |   .2619841    .134388     1.95   0.052    -.0017985    .5257667
+  _Imom_edn_2 |  -.0818819   .1050513    -0.78   0.436    -.2880812    .1243174
+  _Imom_edn_3 |   .4661585   .1482111     3.15   0.002     .1752432    .7570738
+  _Imom_edn_4 |    .109412   .1094644     1.00   0.318    -.1054494    .3242735
+  _Imom_edn_5 |  -.2473083   .1516782    -1.63   0.103    -.5450288    .0504123
+  _Imom_edn_6 |    .100282   .1121028     0.89   0.371    -.1197582    .3203222
+  _Imom_edn_7 |    .044671   .1460186     0.31   0.760    -.2419406    .3312827
+  _Imom_edn_8 |  -.1014733   .2151893    -0.47   0.637    -.5238563    .3209098
+  _Imom_edn_9 |   -.008332   .1473226    -0.06   0.955    -.2975033    .2808392
+  _Idad_edn_2 |   .1097181   .1074412     1.02   0.307    -.1011722    .3206085
+  _Idad_edn_3 |   .1427672   .1696796     0.84   0.400    -.1902873    .4758216
+  _Idad_edn_4 |    .084012   .1097052     0.77   0.444    -.1313221    .2993461
+  _Idad_edn_5 |  -.0971271   .1553491    -0.63   0.532    -.4020531    .2077989
+  _Idad_edn_6 |   .1640688    .111774     1.47   0.143     -.055326    .3834636
+  _Idad_edn_7 |   .1143552   .1254865     0.91   0.362    -.1319551    .3606656
+  _Idad_edn_8 |   .1841826   .1501147     1.23   0.220     -.110469    .4788343
+  _Idad_edn_9 |  -.0214535   .1515514    -0.14   0.887    -.3189253    .2760182
+     _Iyear_2 |   .2869478   .0279941    10.25   0.000     .2319998    .3418957
+        _cons |    1.72003   .1711723    10.05   0.000     1.384045    2.056014
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfpany_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+(18 missing values generated)
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,656
+                                                F(31, 827)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0509
+                                                Root MSE          =      .4212
+
+                                    (Std. Err. adjusted for 828 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0039967    .053351     0.07   0.940    -.1007226     .108716
+        sfp_p |  -.0333009   .0332909    -1.00   0.317    -.0986454    .0320436
+       sfsp_p |  -.1173484   .0430494    -2.73   0.007    -.2018473   -.0328494
+  _Imtongue_2 |   .1305546   .1466256     0.89   0.374    -.1572474    .4183567
+  _Imtongue_3 |   .0353837   .0248364     1.42   0.155     -.013366    .0841334
+  _Ihsgroup_2 |  -.0867633   .0280852    -3.09   0.002      -.14189   -.0316367
+  _Ihsgroup_3 |  -.1869678   .0266211    -7.02   0.000    -.2392206   -.1347149
+_Inumcourse_3 |   .2003494   .0730504     2.74   0.006     .0569633    .3437354
+_Inumcourse_4 |   .2098957   .0626016     3.35   0.001      .087019    .3327725
+_Inumcourse_5 |   .2512022   .0576282     4.36   0.000     .1380875    .3643169
+_Inumcourse_6 |   .2219897   .0591456     3.75   0.000     .1058965    .3380828
+  _Ilastmin_2 |  -.0422091   .0428387    -0.99   0.325    -.1262944    .0418762
+  _Ilastmin_3 |  -.0524918   .0404222    -1.30   0.194    -.1318339    .0268503
+  _Ilastmin_4 |   .0078948   .0432296     0.18   0.855    -.0769578    .0927474
+  _Ilastmin_5 |  -.1049177   .0509625    -2.06   0.040    -.2049489   -.0048866
+  _Imom_edn_2 |   .0810884   .0437408     1.85   0.064    -.0047676    .1669444
+  _Imom_edn_3 |  -.0368764   .0594336    -0.62   0.535    -.1535349    .0797822
+  _Imom_edn_4 |   .0491444   .0460877     1.07   0.287    -.0413182     .139607
+  _Imom_edn_5 |   .1138137   .0672512     1.69   0.091    -.0181895    .2458168
+  _Imom_edn_6 |   .0467723   .0456783     1.02   0.306    -.0428867    .1364312
+  _Imom_edn_7 |   .0744899   .0569136     1.31   0.191    -.0372222     .186202
+  _Imom_edn_8 |    .243848   .0848689     2.87   0.004     .0772643    .4104317
+  _Imom_edn_9 |   .0813459   .0663046     1.23   0.220    -.0487993     .211491
+  _Idad_edn_2 |  -.0377055   .0435725    -0.87   0.387    -.1232312    .0478201
+  _Idad_edn_3 |  -.0022928   .0663584    -0.03   0.972    -.1325436    .1279579
+  _Idad_edn_4 |  -.0016646   .0445298    -0.04   0.970    -.0890693    .0857401
+  _Idad_edn_5 |   .0347424   .0664002     0.52   0.601    -.0955904    .1650752
+  _Idad_edn_6 |  -.0355306   .0445348    -0.80   0.425    -.1229452     .051884
+  _Idad_edn_7 |   .0141705   .0510615     0.28   0.781    -.0860549    .1143959
+  _Idad_edn_8 |  -.0915626   .0584337    -1.57   0.118    -.2062585    .0231333
+  _Idad_edn_9 |   .0304852   .0617537     0.49   0.622    -.0907272    .1516975
+     _Iyear_2 |  -.0048309   .0200511    -0.24   0.810    -.0441879    .0345261
+        _cons |   .1004302   .0791875     1.27   0.205     -.055002    .2558623
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfp_p sfsp_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,656
+                                                F(30, 827)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0488
+                                                Root MSE          =     .42153
+
+                                    (Std. Err. adjusted for 828 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0048935   .0533411     0.09   0.927    -.0998063    .1095933
+     sfpany_p |  -.0582721   .0288267    -2.02   0.044    -.1148541     -.00169
+  _Imtongue_2 |   .1358596    .145072     0.94   0.349    -.1488931    .4206123
+  _Imtongue_3 |    .035869   .0248576     1.44   0.149    -.0129223    .0846604
+  _Ihsgroup_2 |  -.0850579   .0281867    -3.02   0.003    -.1403837   -.0297321
+  _Ihsgroup_3 |  -.1838636   .0264695    -6.95   0.000    -.2358189   -.1319084
+_Inumcourse_3 |    .255861   .0657799     3.89   0.000     .1267458    .3849761
+_Inumcourse_4 |   .2670809   .0536539     4.98   0.000      .161767    .3723948
+_Inumcourse_5 |   .3074347   .0503197     6.11   0.000     .2086654    .4062039
+_Inumcourse_6 |   .2794329   .0498072     5.61   0.000     .1816696    .3771962
+  _Ilastmin_2 |  -.0383679   .0428401    -0.90   0.371    -.1224561    .0457202
+  _Ilastmin_3 |  -.0488062   .0403236    -1.21   0.226    -.1279549    .0303424
+  _Ilastmin_4 |   .0106895   .0432533     0.25   0.805    -.0742097    .0955886
+  _Ilastmin_5 |  -.1017039   .0508805    -2.00   0.046     -.201574   -.0018339
+  _Imom_edn_2 |   .0786256   .0439358     1.79   0.074    -.0076132    .1648644
+  _Imom_edn_3 |  -.0340327   .0595074    -0.57   0.568    -.1508359    .0827705
+  _Imom_edn_4 |   .0489016   .0463689     1.05   0.292     -.042113    .1399162
+  _Imom_edn_5 |   .1150112   .0672323     1.71   0.088    -.0169548    .2469771
+  _Imom_edn_6 |   .0449399   .0459303     0.98   0.328    -.0452138    .1350936
+  _Imom_edn_7 |   .0735691   .0570012     1.29   0.197    -.0383149    .1854531
+  _Imom_edn_8 |   .2477624   .0847054     2.92   0.004     .0814996    .4140253
+  _Imom_edn_9 |   .0806389   .0663073     1.22   0.224    -.0495114    .2107892
+  _Idad_edn_2 |  -.0381922   .0437293    -0.87   0.383    -.1240257    .0476412
+  _Idad_edn_3 |   .0015835   .0667247     0.02   0.981    -.1293861    .1325531
+  _Idad_edn_4 |  -.0041485   .0448034    -0.09   0.926    -.0920903    .0837934
+  _Idad_edn_5 |   .0379673   .0662773     0.57   0.567    -.0921243    .1680588
+  _Idad_edn_6 |  -.0348925    .044706    -0.78   0.435    -.1226431    .0528581
+  _Idad_edn_7 |   .0143071   .0511869     0.28   0.780    -.0861644    .1147785
+  _Idad_edn_8 |  -.0955079   .0585856    -1.63   0.103    -.2105019    .0194861
+  _Idad_edn_9 |   .0322859   .0613067     0.53   0.599    -.0880492     .152621
+     _Iyear_2 |  -.0048309   .0200449    -0.24   0.810    -.0441758     .034514
+        _cons |   .0392887   .0715553     0.55   0.583    -.1011626      .17974
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfpany_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+(18 missing values generated)
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,656
+                                                F(31, 827)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1045
+                                                Root MSE          =     1.1869
+
+                                    (Std. Err. adjusted for 828 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0487788   .1729915     0.28   0.778    -.2907752    .3883328
+        sfp_p |   .0335203   .1044306     0.32   0.748    -.1714598    .2385004
+       sfsp_p |   .3268344   .1476768     2.21   0.027      .036969    .6166998
+  _Imtongue_2 |  -.2921733      .4398    -0.66   0.507    -1.155429    .5710822
+  _Imtongue_3 |  -.0940668   .0784521    -1.20   0.231    -.2480555     .059922
+  _Ihsgroup_2 |   .3458573   .0936409     3.69   0.000     .1620554    .5296592
+  _Ihsgroup_3 |   .6526478   .0871218     7.49   0.000     .4816419    .8236536
+_Inumcourse_3 |  -.6212076    .275395    -2.26   0.024    -1.161763   -.0806522
+_Inumcourse_4 |   .0146457   .2032637     0.07   0.943    -.3843278    .4136191
+_Inumcourse_5 |   .2634389   .1993319     1.32   0.187     -.127817    .6546948
+_Inumcourse_6 |   .2432182   .2048987     1.19   0.236    -.1589645    .6454009
+  _Ilastmin_2 |  -.0171291    .131265    -0.13   0.896    -.2747808    .2405226
+  _Ilastmin_3 |   .0752529   .1237378     0.61   0.543    -.1676243      .31813
+  _Ilastmin_4 |  -.0656868   .1335672    -0.49   0.623    -.3278574    .1964837
+  _Ilastmin_5 |    .101693   .1767251     0.58   0.565    -.2451895    .4485754
+  _Imom_edn_2 |  -.0776635   .1565525    -0.50   0.620    -.3849505    .2296235
+  _Imom_edn_3 |   .7683029    .199882     3.84   0.000     .3759672    1.160639
+  _Imom_edn_4 |   .1433975   .1635799     0.88   0.381    -.1776831    .4644782
+  _Imom_edn_5 |   -.150364   .2116434    -0.71   0.478    -.5657855    .2650575
+  _Imom_edn_6 |   .1078526   .1643969     0.66   0.512    -.2148315    .4305368
+  _Imom_edn_7 |   .1246812   .2047446     0.61   0.543    -.2771989    .5265613
+  _Imom_edn_8 |  -.2685043   .2809291    -0.96   0.339    -.8199223    .2829137
+  _Imom_edn_9 |   .1443585   .2179527     0.66   0.508     -.283447     .572164
+  _Idad_edn_2 |   .0531609   .1493453     0.36   0.722    -.2399794    .3463013
+  _Idad_edn_3 |   .1120404   .2414621     0.46   0.643    -.3619102     .585991
+  _Idad_edn_4 |  -.0540818   .1464296    -0.37   0.712    -.3414993    .2333357
+  _Idad_edn_5 |  -.0363692   .1963343    -0.19   0.853    -.4217413    .3490029
+  _Idad_edn_6 |   .1386887    .147115     0.94   0.346    -.1500739    .4274513
+  _Idad_edn_7 |  -.0092721    .167468    -0.06   0.956    -.3379844    .3194402
+  _Idad_edn_8 |   .2617776   .2094692     1.25   0.212    -.1493764    .6729315
+  _Idad_edn_9 |   -.161358   .2232756    -0.72   0.470    -.5996114    .2768955
+     _Iyear_2 |   .1657609    .045344     3.66   0.000     .0767581    .2547636
+        _cons |   1.709414   .2800775     6.10   0.000     1.159667     2.25916
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfp_p sfsp_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-1           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Instrumental variables (2SLS) regression        Number of obs     =      1,656
+                                                F(30, 827)        >   99999.00
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1033
+                                                Root MSE          =     1.1873
+
+                                    (Std. Err. adjusted for 828 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+         var2 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+        ssp_p |   .0456491   .1729773     0.26   0.792    -.2938772    .3851754
+     sfpany_p |   .1206662   .0923737     1.31   0.192    -.0606483    .3019808
+  _Imtongue_2 |   -.310687   .4360503    -0.71   0.476    -1.166582    .5452085
+  _Imtongue_3 |  -.0957605   .0785012    -1.22   0.223    -.2498455    .0583245
+  _Ihsgroup_2 |   .3399056   .0937937     3.62   0.000     .1558039    .5240073
+  _Ihsgroup_3 |   .6418148   .0865435     7.42   0.000     .4719441    .8116855
+_Inumcourse_3 |  -.8149355   .2455082    -3.32   0.001    -1.296828   -.3330429
+_Inumcourse_4 |  -.1849228   .1735116    -1.07   0.287    -.5254976    .1556521
+_Inumcourse_5 |   .0671953   .1691355     0.40   0.691      -.26479    .3991806
+_Inumcourse_6 |   .0427494   .1690928     0.25   0.800    -.2891521    .3746508
+  _Ilastmin_2 |  -.0305344   .1308743    -0.23   0.816    -.2874194    .2263505
+  _Ilastmin_3 |   .0623908   .1229372     0.51   0.612    -.1789148    .3036964
+  _Ilastmin_4 |  -.0754399   .1330245    -0.57   0.571    -.3365453    .1856656
+  _Ilastmin_5 |   .0904772   .1763606     0.51   0.608    -.2556898    .4366442
+  _Imom_edn_2 |  -.0690685   .1566608    -0.44   0.659    -.3765681     .238431
+  _Imom_edn_3 |   .7583789   .1992722     3.81   0.000     .3672402    1.149518
+  _Imom_edn_4 |   .1442449   .1637043     0.88   0.379    -.1770799    .4655696
+  _Imom_edn_5 |  -.1545431   .2105637    -0.73   0.463    -.5678453     .258759
+  _Imom_edn_6 |   .1142473   .1647572     0.69   0.488    -.2091441    .4376387
+  _Imom_edn_7 |   .1278946   .2043352     0.63   0.532     -.273182    .5289712
+  _Imom_edn_8 |  -.2821651   .2795029    -1.01   0.313    -.8307837    .2664536
+  _Imom_edn_9 |   .1468258   .2159853     0.68   0.497    -.2771181    .5707697
+  _Idad_edn_2 |   .0548594   .1497527     0.37   0.714    -.2390807    .3487995
+  _Idad_edn_3 |   .0985126   .2427948     0.41   0.685    -.3780539    .5750791
+  _Idad_edn_4 |  -.0454134   .1473317    -0.31   0.758    -.3346015    .2437747
+  _Idad_edn_5 |  -.0476236   .1961659    -0.24   0.808    -.4326653    .3374181
+  _Idad_edn_6 |    .136462    .147536     0.92   0.355    -.1531271    .4260511
+  _Idad_edn_7 |  -.0097488   .1678205    -0.06   0.954    -.3391531    .3196555
+  _Idad_edn_8 |    .275546   .2089043     1.32   0.188     -.134499    .6855909
+  _Idad_edn_9 |  -.1676424   .2198277    -0.76   0.446    -.5991282    .2638435
+     _Iyear_2 |   .1657609     .04533     3.66   0.000     .0767855    .2547362
+        _cons |   1.922789   .2441728     7.87   0.000     1.443518     2.40206
+-------------------------------------------------------------------------------
+Instrumented:  ssp_p sfpany_p
+Instruments:   _Imtongue_2 _Imtongue_3 _Ihsgroup_2 _Ihsgroup_3 _Inumcourse_3
+               _Inumcourse_4 _Inumcourse_5 _Inumcourse_6 _Ilastmin_2
+               _Ilastmin_3 _Ilastmin_4 _Ilastmin_5 _Imom_edn_2 _Imom_edn_3
+               _Imom_edn_4 _Imom_edn_5 _Imom_edn_6 _Imom_edn_7 _Imom_edn_8
+               _Imom_edn_9 _Idad_edn_2 _Idad_edn_3 _Idad_edn_4 _Idad_edn_5
+               _Idad_edn_6 _Idad_edn_7 _Idad_edn_8 _Idad_edn_9 _Iyear_2 ssp
+               sfsp sfp
+-------------------------------------------------------------------------------
+
+.         
+. mat colnames t8 = GPA GPA Prob Prob CredErn CredErn
+
+. mat rownames t8 = ContMean "x" SSP "x" SFP "x" SFSP "x" SFSP_any "x" overid pvalue obs
+
+. 
+. mat li t8
+
+t8[13,6]
+                 GPA         GPA        Prob        Prob     CredErn     CredErn
+ContMean   1.8650957   1.8650957   .25447316   .25447316   2.4035785   2.4035785
+       x   .90684528   .90684528    .4357813    .4357813   1.2386388   1.2386388
+     SSP   .07069519   .06846632   .00399669   .00489349    .0487788   .04564908
+       x   .12550433   .12552096   .05335099   .05334107   .17299146   .17297735
+     SFP   .04113765           .  -.03330089           .    .0335203           .
+       x   .08063741           .   .03329087           .   .10443056           .
+    SFSP   .31470087           .  -.11734837           .   .32683437           .
+       x   .11243502           .   .04304939           .   .14767678           .
+SFSP_any           .   .12507248           .  -.05827207           .   .12066624
+       x           .   .07044134           .   .02882669           .   .09237374
+  overid           .           .           .           .           .           .
+  pvalue           .           .           .           .           .           .
+     obs        1542        1542        1656        1656        1656        1656
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table8.log
+  log type:  text
+ closed on:  26 Jul 2018, 11:21:23
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

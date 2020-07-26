@@ -1,0 +1,1116 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table7.log
+  log type:  text
+ opened on:  24 Jul 2018, 19:56:49
+
+. 
+. ****************************************************************
+. * PROGRAM: STAR_Table7
+. * PROGRAMMER: Bruno Ferman (based on program written by Simone Schaner)
+. * PURPOSE: Makes Table 7 of Angrist, Lang and Oreopoulos (2008) 
+. *****************************************************************
+. 
+. clear
+
+. use "/Users/youpengzhang/Desktop/2018_CGS/referee_report/empirics/STARdatapost/STAR_public_use.dta", clear
+
+. set mem 50m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 200
+
+. 
+. use STAR_public_use, clear      
+
+. 
+. * SAMPLE IN ALL CONTROLS SPEC
+. keep if sex~="" & mtongue~="" & hsgroup~=. & numcourses_nov1~=. & lastmin~=. & mom_edn~=. & dad_edn~=.
+(184 observations deleted)
+
+. 
+. 
+. * CONTROL SETS
+. local all i.sex i.mtongue i.hsgroup i.numcourses_nov1 i.lastmin i.mom_edn i.dad_edn i.year
+
+. 
+. 
+. keep if noshow==0
+(41 observations deleted)
+
+. 
+. keep   sex mtongue hsgroup numcourses_nov1 lastmin mom_edn dad_edn GPA_year1 GPA_year2 ///
+>        ssp sfp sfsp control
+
+. 
+. gen id=_n
+
+. 
+. * STACK THE DATA
+. reshape long GPA_year, i(id) j(year)
+(note: j = 1 2)
+
+Data                               wide   ->   long
+-----------------------------------------------------------------------------
+Number of obs.                     1431   ->    2862
+Number of variables                  14   ->      14
+j variable (2 values)                     ->   year
+xij variables:
+                    GPA_year1 GPA_year2   ->   GPA_year
+-----------------------------------------------------------------------------
+
+. 
+. 
+. mat t7=J(30,6,.)
+
+. 
+. local i=1
+
+. local j=1
+
+. 
+. g byte group1= 1
+
+. g byte group2= sex=="M"
+
+. g byte group3= sex=="F"
+
+. 
+. foreach group in 2 3 {
+  2.         
+.         xi: reg GPA_year ssp sfp sfsp `all'  if group`group', clu(id)
+  3.                 mat t7[`j'+3,`i']=_b[ssp]
+  4.                 mat t7[`j'+4,`i']=_se[ssp]
+  5.                 mat t7[`j'+7,`i']=_b[sfp]
+  6.                 mat t7[`j'+8,`i']=_se[sfp]
+  7.                 mat t7[`j'+9,`i']=_b[sfsp]
+  8.                 mat t7[`j'+10,`i']=_se[sfsp]
+  9.                 mat t7[`j'+11,`i']=e(N)
+ 10.                 
+.                 qui sum GPA_year if e(sample) & cont, detail
+ 11.                                 mat t7[`j'+1,`i']=r(mean)
+ 12.                                 mat t7[`j'+2,`i']=r(sd)
+ 13.                 local ++i
+ 14.                 
+.                 foreach quantile in .1 .25 .5 .75 .9 {
+ 15. 
+.         xi: bootstrap _b[ssp] _b[sfp] _b[sfsp],  reps(500) cluster(id): qreg GPA_year ssp sfp sfsp `all' if group`group', q(`quantile')
+ 16.                 mat t7[`j'+3,`i']=_b[_bs_1]
+ 17.                 mat t7[`j'+4,`i']=_se[_bs_1]
+ 18.                 mat t7[`j'+7,`i']=_b[_bs_2]
+ 19.                 mat t7[`j'+8,`i']=_se[_bs_2]
+ 20.                 mat t7[`j'+9,`i']=_b[_bs_3]
+ 21.                 mat t7[`j'+10,`i']=_se[_bs_3]
+ 22.                 mat t7[`j'+11,`i']=e(N)
+ 23.                 
+.         qui sum GPA_year if e(sample) & cont, detail
+ 24.                 local val=`quantile'*100
+ 25.                 
+.                 mat t7[`j'+1,`i']=r(p`val')
+ 26.                 *mat t7[`j'+2,`i']=r(sd)
+.         local ++i
+ 27.         }       
+ 28.         local j=`j'+12
+ 29.         local i=1
+ 30.         }
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,098
+                                                F(31, 584)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1754
+                                                Root MSE          =     .84926
+
+                                    (Std. Err. adjusted for 585 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+     GPA_year |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |  -.0053693   .0958797    -0.06   0.955    -.1936804    .1829418
+          sfp |  -.1075891   .0879071    -1.22   0.221    -.2802416    .0650635
+         sfsp |  -.0780501     .13675    -0.57   0.568    -.3466318    .1905315
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.0304141    .233272    -0.13   0.896    -.4885683    .4277401
+  _Imtongue_3 |  -.0374636   .0727634    -0.51   0.607    -.1803734    .1054462
+  _Ihsgroup_2 |   .2885143   .0797994     3.62   0.000     .1317856     .445243
+  _Ihsgroup_3 |   .7645736   .0794791     9.62   0.000     .6084739    .9206732
+_Inumcourse_3 |  -.2254632   .3788274    -0.60   0.552    -.9694932    .5185668
+_Inumcourse_4 |  -.1358164   .3452348    -0.39   0.694    -.8138694    .5422366
+_Inumcourse_5 |   -.187903   .3467735    -0.54   0.588    -.8689781     .493172
+_Inumcourse_6 |  -.1709063   .3451143    -0.50   0.621    -.8487226      .50691
+  _Ilastmin_2 |   .0283642   .1002818     0.28   0.777    -.1685927     .225321
+  _Ilastmin_3 |  -.0271472   .0944957    -0.29   0.774    -.2127399    .1584455
+  _Ilastmin_4 |  -.0564442   .1105135    -0.51   0.610    -.2734966    .1606082
+  _Ilastmin_5 |   .3507186   .1757211     2.00   0.046     .0055962     .695841
+  _Imom_edn_2 |  -.2672305   .1977834    -1.35   0.177    -.6556839    .1212228
+  _Imom_edn_3 |  -.4222574   .2493731    -1.69   0.091    -.9120347      .06752
+  _Imom_edn_4 |  -.3411309   .2032506    -1.68   0.094    -.7403221    .0580603
+  _Imom_edn_5 |  -.1604051   .2254767    -0.71   0.477     -.603249    .2824389
+  _Imom_edn_6 |  -.3715608   .2034786    -1.83   0.068    -.7711997    .0280781
+  _Imom_edn_7 |  -.2429115   .2099238    -1.16   0.248     -.655209    .1693859
+  _Imom_edn_8 |  -.4217733   .2777789    -1.52   0.129    -.9673407    .1237941
+  _Imom_edn_9 |  -.4946595   .2361072    -2.10   0.037    -.9583822   -.0309367
+  _Idad_edn_2 |  -.3910803    .147226    -2.66   0.008    -.6802374   -.1019233
+  _Idad_edn_3 |   .0122372   .1923489     0.06   0.949    -.3655426     .390017
+  _Idad_edn_4 |   -.054112   .1412372    -0.38   0.702    -.3315067    .2232828
+  _Idad_edn_5 |  -.0759458   .1722481    -0.44   0.659     -.414247    .2623554
+  _Idad_edn_6 |  -.1440326   .1354527    -1.06   0.288    -.4100663    .1220012
+  _Idad_edn_7 |  -.1887431   .1449597    -1.30   0.193     -.473449    .0959628
+  _Idad_edn_8 |   .1068238   .1780246     0.60   0.549    -.2428226    .4564702
+  _Idad_edn_9 |  -.1183089   .1866039    -0.63   0.526    -.4848055    .2481876
+     _Iyear_2 |   .1846594    .035869     5.15   0.000     .1142115    .2551073
+        _cons |   2.176891   .3898114     5.58   0.000     1.411288    2.942494
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..x.x.x...x.xx.xxxxxx..x....xxxxxxx.....xx.x..xxxx    50
+.x..x..xx.x.x.xxxxxx.x.xx..xx.xx.x...xxx......xxxx   100
+..x...xxxx..x.x.xx..x....x.x...xxx.xx....x.xx..xx.   150
+...xxx..x...xx.xxxx.xx.xx.x.xx...xxx.x...x..x.xxx.   200
+x...x..xx.x...x.....x.x.x.xx..x.xx..xx.......x..xx   250
+xxx..xx..xx.x.xxxxx...xxx.x.x.x...x.......x..x..x.   300
+xxxx......x.xxx.....x.xxx...x...x.x..x...x..x.x.xx   350
+.x..x.....xxxxxx..xx.xxxx.x.x..xx.x.xx.xxx....xxxx   400
+.xx.xxx.x...xx..x.xxx.x.x..x.x....xx...xxxx..xx.xx   450
+.x......x.......x.xx..x.xxxxx...xxxxx.x.x.x.x.x.xx   500
+
+Bootstrap results                               Number of obs     =      1,098
+                                                Replications      =        258
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.1)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 585 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |  -.0749999   .2089404    -0.36   0.720    -.4845156    .3345157
+       _bs_2 |      -.015   .1711781    -0.09   0.930    -.3505029     .320503
+       _bs_3 |  -.1949999   .2303803    -0.85   0.397    -.6465371    .2565372
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 242 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+xx...xxx......x.......x..xxxx...x.xx...x....x.x..x    50
+xx.....x...x..x.....x..x..x..xx.....x.x...x.......   100
+..x.x....xxx..xxx...xx..x.x.x..xxx...xx.x....x..xx   150
+xx.....x...xxx...x.xx.xxx.x....xxx.x..x.x.x..x..x.   200
+.xx.x.x....xxxx..x.x..x.xx...x.xxx.x.x.xx.xx..xx..   250
+x.x.......xxxxxx....x..x.x..........x...xx..x.....   300
+.....xx.xxxxxx...x.xx....x...x....xx..x.......xx..   350
+.....xx....x......xx....x.......x......x..xxx.....   400
+xx...........x.x...x.xx.....xxx.xx.xx.xxx......xx.   450
+..x.xxxx..x....x.....xx..xx...x.x..xxx...x..x..x..   500
+
+Bootstrap results                               Number of obs     =      1,098
+                                                Replications      =        318
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.25)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 585 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .0375757    .161883     0.23   0.816    -.2797091    .3548604
+       _bs_2 |  -.0448483     .13735    -0.33   0.744    -.3140494    .2243527
+       _bs_3 |   -.210606   .2083888    -1.01   0.312    -.6190406    .1978285
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 182 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..x..x..xxx...xx...x..x..xxx.....xxxxxxxxx.x....x.    50
+xx......x.x....x...x.x..x......x.x.x.x...x..xx...x   100
+.........xxxxx.xxx..xx..xx.....xx...x..xx......xx.   150
+..x...xx.xxxx.x..xx...xxx.xx...xx..x..xx..xx..x.x.   200
+x...x......x.....x...xx.xxx..x......x...xxx...xxx.   250
+...xx....xx...x.x..x.....xx.x.xxx...........xxx...   300
+..x......x...x..x.....x...x.xx....x..x..x..xx...x.   350
+xx.....x...x....xxx....x....x....x...xx...x.x...xx   400
+x.x...xx..xx.x..xx.x...xx....x.x.x....xx......xx.x   450
+x.xx......x....x..xx.....x.xxx.xx.x........x..xx..   500
+
+Bootstrap results                               Number of obs     =      1,098
+                                                Replications      =        318
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.5)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 585 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .1071204   .1223572     0.88   0.381    -.1326954    .3469362
+       _bs_2 |  -.1849367   .1100005    -1.68   0.093    -.4005338    .0306603
+       _bs_3 |  -.1077532   .1904396    -0.57   0.572     -.481008    .2655015
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 182 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+xx..xx.xx....x..x..x.x.xx.x.x..x.....xxx.xx.x..x..    50
+.xx.x.x.xx.x.x.x.xx.....x.xxx.x...xx....xx..xx.xx.   100
+...x...xx.xxx.........x.xx..x....xx.x.x.xx.xxx.xxx   150
+..xx...x...x.xxxxx.x..xxxxxx..x..xxxx..x..x..x..x.   200
+.....x.x..xxxx....x.....xxx.....x..xx.xx...xxx.xx.   250
+..x....x....xx..x...x....x..xx.....x..x.x.x..xxx.x   300
+.xxx....xxx.xxxx.x....xx.x......xx.xx...x.xx..x.xx   350
+......x..x..xxxx.x...xxx.x..x.xx.xxx.xxxx...xx...x   400
+.xxx..x..x.......x.xxxxxx.x....x..x..xxx..x......x   450
+xxx...xx...x..x.x..x.x.x..x.x..xx........x...xxx.x   500
+
+Bootstrap results                               Number of obs     =      1,098
+                                                Replications      =        282
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.75)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 585 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .0385713   .1229457     0.31   0.754    -.2023979    .2795404
+       _bs_2 |  -.2042858   .1312598    -1.56   0.120    -.4615504    .0529787
+       _bs_3 |   .1203863   .1719906     0.70   0.484     -.216709    .4574816
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 218 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+.....xx..x.x.xxxxx.x.xx.......x.x..x...xx..xxxxx..    50
+xxxx.x.x..xx.xxxx.xxxxxxxx...xx..xxx.xxxxxx.x....x   100
+.xx.xx.x...xxxx......x.xx.xxxx.x.xx.x.x.x...xxxx.x   150
+x...xxx.xxx....x.xxx.xx..x..x.xx.xx.xx.x.x.....x.x   200
+x.x.xx.xxxx.x.x...x.xx.x.x..xxxxx.xxx..xxx.xxxxx..   250
+xx....x...xxxx..xxxxx....xxx....xxx..xxxxx.xxx.xxx   300
+xxxx.x...x..xx.xx.x...xxxx.x....xxxxx.x.x..x.x.x.x   350
+xxxx..xxxx.......x...xxx.xxxxx...x.xxxx.x.xx.x..x.   400
+xxxx.x.xxx.....x..xxxx..x..xx.x.x.....xx.x.x.x....   450
+..x.x..xx....x...x...xxxx...xxxx..x.xx....xxx.....   500
+
+Bootstrap results                               Number of obs     =      1,098
+                                                Replications      =        236
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.9)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 585 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |  -.0633332   .1229647    -0.52   0.607    -.3043396    .1776732
+       _bs_2 |  -.0843751   .1508961    -0.56   0.576    -.3801261    .2113759
+       _bs_3 |   .2100001   .1664722     1.26   0.207    -.1162794    .5362796
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 264 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+note: _Isex_2 omitted because of collinearity
+
+Linear regression                               Number of obs     =      1,542
+                                                F(31, 825)        =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2290
+                                                Root MSE          =     .79776
+
+                                    (Std. Err. adjusted for 826 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+     GPA_year |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+--------------+----------------------------------------------------------------
+          ssp |   .0425624   .0748169     0.57   0.570    -.1042914    .1894162
+          sfp |   .0370637   .0729246     0.51   0.611    -.1060758    .1802033
+         sfsp |   .2639925    .094417     2.80   0.005     .0786667    .4493184
+      _Isex_2 |          0  (omitted)
+  _Imtongue_2 |  -.4093562    .224284    -1.83   0.068    -.8495906    .0308782
+  _Imtongue_3 |  -.1368662   .0571006    -2.40   0.017    -.2489457   -.0247867
+  _Ihsgroup_2 |   .4303404   .0665432     6.47   0.000     .2997266    .5609542
+  _Ihsgroup_3 |   .8577195    .061978    13.84   0.000     .7360663    .9793727
+_Inumcourse_3 |  -.5013289   .1907975    -2.63   0.009    -.8758345   -.1268232
+_Inumcourse_4 |  -.3227759   .1410039    -2.29   0.022    -.5995445   -.0460074
+_Inumcourse_5 |   -.362953   .1355968    -2.68   0.008    -.6291083   -.0967976
+_Inumcourse_6 |  -.4078938   .1350337    -3.02   0.003    -.6729438   -.1428438
+  _Ilastmin_2 |  -.0420251   .0993491    -0.42   0.672    -.2370319    .1529817
+  _Ilastmin_3 |   .0033825   .0928103     0.04   0.971    -.1787896    .1855545
+  _Ilastmin_4 |  -.0680625   .0996469    -0.68   0.495    -.2636537    .1275288
+  _Ilastmin_5 |   .2635421   .1328978     1.98   0.048     .0026846    .5243997
+  _Imom_edn_2 |   -.084854   .1037797    -0.82   0.414    -.2885572    .1188493
+  _Imom_edn_3 |   .4629951   .1472476     3.14   0.002     .1739711    .7520191
+  _Imom_edn_4 |   .1159628   .1077852     1.08   0.282    -.0956026    .3275282
+  _Imom_edn_5 |  -.2350364    .151868    -1.55   0.122    -.5331294    .0630567
+  _Imom_edn_6 |   .1015579   .1104224     0.92   0.358     -.115184    .3182997
+  _Imom_edn_7 |    .059023    .145092     0.41   0.684    -.2257698    .3438159
+  _Imom_edn_8 |  -.0803871   .2163727    -0.37   0.710    -.5050929    .3443187
+  _Imom_edn_9 |   .0012313   .1485095     0.01   0.993    -.2902697    .2927322
+  _Idad_edn_2 |   .1092997   .1060081     1.03   0.303    -.0987776     .317377
+  _Idad_edn_3 |   .1616494   .1673234     0.97   0.334    -.1667802    .4900791
+  _Idad_edn_4 |   .0809786   .1084442     0.75   0.455    -.1318804    .2938377
+  _Idad_edn_5 |  -.0857071   .1533606    -0.56   0.576      -.38673    .2153159
+  _Idad_edn_6 |   .1689526   .1101081     1.53   0.125    -.0471724    .3850777
+  _Idad_edn_7 |    .107574   .1245455     0.86   0.388    -.1368894    .3520374
+  _Idad_edn_8 |    .168781   .1494397     1.13   0.259    -.1245458    .4621078
+  _Idad_edn_9 |  -.0177014   .1537155    -0.12   0.908    -.3194209    .2840181
+     _Iyear_2 |   .2857572   .0279154    10.24   0.000     .2309636    .3405509
+        _cons |   1.575929   .1852601     8.51   0.000     1.212292    1.939565
+-------------------------------------------------------------------------------
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+xx..xx..x..xx.x.xxx..xxx..x...xxx.x..x.........x..    50
+.xx.xx......xx.x.x.x.x..x..xx..xx.......x.....xx..   100
+x.x....x.xx..xxx..xx..xx..x...xx.x.x.xxxxx..x.xx.x   150
+...x....xxx...xxx..x...xx......x.x...xx...x..xx.x.   200
+x.....xxx.x.....xx...xxxx.xxx...x..xx..xx.......x.   250
+....x...xx...xxx..xxx.x.........xx..x.x........x..   300
+xx.x.x..x...x.xxxxx.x.xxx.x.....xx..xxxxx.xxxxx..x   350
+.x...x.x...x.....xx.....xxxx.x.....x.x.x.xx.....x.   400
+x...x......xxx...x.x..xxx..xx...x..xxx.........x..   450
+........xxx...........xx...x..xxxx.xxxx.xx.xx.x.x.   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        299
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.1)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |  -.0651063   .1505473    -0.43   0.665    -.3601735     .229961
+       _bs_2 |   .0141844   .1032709     0.14   0.891    -.1882229    .2165917
+       _bs_3 |   .3890071   .1439615     2.70   0.007     .1068477    .6711665
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 201 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+x.x...x..x......x....x....x.xxx.....xxx.....xxx.x.    50
+......x....x.x.xx.....x....x.x..x.x..x..xx.x..x.xx   100
+x..xx..xx..x.x.x.xxx.........x...............x..x.   150
+x........xx.....x..x.xxx.x....x........x.xx..x.x..   200
+x.xx.xxx.........x....x.xxx.......x.x..x.xx..xxx.x   250
+.....x.xx...x.x..xxx..xx.x..x...xx.xxx...xxx.xx..x   300
+.x.xx.....x.x...x.x.xxxxxxxxx.xxxxx.........x..x..   350
+...x....x......x....x.x.......x.......xxxx..xx.x.x   400
+x.x.......xx.....x.x..x..xx....x.x.x..x....x......   450
+x.x......x.xxxxx.x.x.xxxx.x..xx....x..x.xx.x.xxx.x   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        317
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.25)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |    .087619   .1414645     0.62   0.536    -.1896463    .3648843
+       _bs_2 |  -.0438096   .1123655    -0.39   0.697    -.2640418    .1764227
+       _bs_3 |   .2709523   .1226453     2.21   0.027     .0305719    .5113328
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 183 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+...x....x....x........xx...x.x.x.x..xxx....x..xx..    50
+xx..xx..x.........x.x..x.......x.x.x...x...xxx.x.x   100
+...x..xx..x...x..xxx.x....x..xxx..xx.x..xxxx.xx.xx   150
+.....x.......x..x.x...x.......x......x...xxxxxxx..   200
+x.xx..x.x.x....x...x......xx.x......xx.x......x...   250
+..x......xxx.xx..xxx.x..x.xx..xxxx.x..x......xx..x   300
+xxxx..xx.xxx..x...xxx.x...x..x......x..x...x.x.x.x   350
+xxx.xx.....x....xxx.xx......x.x..x.xxx..x.xxx.xxx.   400
+.xxx.xxxx.x.x..x.xx.xxx.x..xx.....xx...x.....xx.x.   450
+.....x..x...x..x....x..xx.x.x.....xxx.xx..x...xx.x   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        305
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.5)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .1310346   .0995553     1.32   0.188    -.0640902    .3261593
+       _bs_2 |   .0027587   .1018288     0.03   0.978     -.196822    .2023394
+       _bs_3 |   .1868967   .1161548     1.61   0.108    -.0407625    .4145559
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 195 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+.x.xxx.x...x......x.....x...x.x.x.xx.xx...x..x..x.    50
+....x........x.x.x.x..x....x....xx.x.x..x..x.x..x.   100
+xxx...xx..x.x...x.x.x.xx..x.xxx.xx..xx..xx.x.....x   150
+....xxx.x..xxxx.x.xx........x.x......x.x...x.xx..x   200
+..xx..x...x....xx..x.......x.x.x...x.xx..xxxx..x.x   250
+.xxx...x.....xx....x.x.xxxx.....xx..xx.xx.xx..xxx.   300
+.x.....x.....xx..x....x...x.xx.xx...xx.xx.x.x..x.x   350
+.x..x......x...xx....x..x...xxx..x...x.x..xx.x....   400
+.x..x.x.xx.xxxxx.xx..x.x...x....x....xxx....x....x   450
+.xx.xx..xxx....xxxx.xx...x......x..xxxx.xxxx.xxx.x   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        299
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.75)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .0877777   .0989934     0.89   0.375    -.1062459    .2818012
+       _bs_2 |   .0666668   .0814159     0.82   0.413    -.0929054     .226239
+       _bs_3 |   .2693651   .1467286     1.84   0.066    -.0182178    .5569479
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 201 bootstrap
+      replicates; standard-error estimates include only complete replications.
+i.sex             _Isex_1-2           (_Isex_1 for sex==F omitted)
+i.mtongue         _Imtongue_1-3       (_Imtongue_1 for mton~e==English omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+i.numcourses_~1   _Inumcourse_2-6     (naturally coded; _Inumcourse_2 omitted)
+i.lastmin         _Ilastmin_1-5       (naturally coded; _Ilastmin_1 omitted)
+i.mom_edn         _Imom_edn_1-9       (naturally coded; _Imom_edn_1 omitted)
+i.dad_edn         _Idad_edn_1-9       (naturally coded; _Idad_edn_1 omitted)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+.....xx..x.x.xx..xxxx......xx..x...xxx....x.xx..xx    50
+xx..x..xxxxxxx.x.x....x.xx.xx.xx.x..xxxxx..x.....x   100
+.x..x.x.xx..x....xx..x...x......xx....xxx..x..xxx.   150
+xxx....x...x...xx..x.......x.x..xx..x.x.x.x.....x.   200
+x..x...x.xx.xxx.......xx.xx.x..x.x..xx........x..x   250
+x.....x....x.x....x..x..x..x.xx.xxx.x.xx......xx..   300
+x...xx.xx...x.x..x..x.x...xx..x.xx.x..x.x..x.xxx.x   350
+x.x...x.x.xxxx...x...x.x...xx..xx.xx.xxxx.x....xxx   400
+x...xx....x..xx...xxxx.xx..x...x...x.xx..xxxxxxxx.   450
+...xx.x.x...xxx.x..xx.x..x..x........x.xx.x...x...   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        288
+
+      command:  qreg GPA_year ssp sfp sfsp _Isex_* _Imtongue_* _Ihsgroup_* _Inumcourse_* _Ilastmin_* _Imom_edn_* _Idad_edn_* _Iyear_*, q(.9)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |  -.0735677   .1037968    -0.71   0.478    -.2770057    .1298703
+       _bs_2 |  -.0127184    .093227    -0.14   0.891    -.1954401    .1700032
+       _bs_3 |   .2957767   .1216699     2.43   0.015     .0573081    .5342453
+------------------------------------------------------------------------------
+Note: One or more parameters could not be estimated in 212 bootstrap
+      replicates; standard-error estimates include only complete replications.
+
+. 
+. local i=1
+
+. local j=26
+
+. 
+. xi: reg GPA_year ssp sfp sfsp i.year i.hsgroup if group3, clu(id)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+
+Linear regression                               Number of obs     =      1,542
+                                                F(6, 825)         =      58.43
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1888
+                                                Root MSE          =     .81133
+
+                                   (Std. Err. adjusted for 826 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+    GPA_year |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         ssp |   .0599773   .0758323     0.79   0.429    -.0888696    .2088242
+         sfp |   .0473748   .0727177     0.65   0.515    -.0953587    .1901084
+        sfsp |   .2830329    .093176     3.04   0.002     .1001429    .4659229
+    _Iyear_2 |   .2909044   .0279805    10.40   0.000     .2359831    .3458257
+ _Ihsgroup_2 |   .4095235   .0663009     6.18   0.000     .2793853    .5396618
+ _Ihsgroup_3 |   .8668466   .0625154    13.87   0.000     .7441386    .9895546
+       _cons |   1.280102    .050192    25.50   0.000     1.181583    1.378621
+------------------------------------------------------------------------------
+
+.         mat t7[`j',`i']=_b[sfsp]
+
+.         mat t7[`j'+1,`i']=_se[sfsp]
+
+. 
+. xi: reg GPA_year ssp sfp sfsp i.year   if group3, clu(id)
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+
+Linear regression                               Number of obs     =      1,542
+                                                F(4, 825)         =      27.63
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0317
+                                                Root MSE          =     .88581
+
+                                   (Std. Err. adjusted for 826 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+    GPA_year |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         ssp |   .0659026   .0839778     0.78   0.433    -.0989327    .2307379
+         sfp |   .0946806   .0782891     1.21   0.227    -.0589886    .2483499
+        sfsp |   .2205585   .0999665     2.21   0.028     .0243398    .4167771
+    _Iyear_2 |   .2924848     .02866    10.21   0.000     .2362298    .3487399
+       _cons |   1.727877   .0395635    43.67   0.000      1.65022    1.805534
+------------------------------------------------------------------------------
+
+.         mat t7[`j'+2,`i']=_b[sfsp]
+
+.         mat t7[`j'+3,`i']=_se[sfsp]
+
+.         mat t7[`j'+4,`i']=e(N)
+
+. 
+. local ++i
+
+. 
+. foreach quantile in .1 .25 .5 .75 .9 {
+  2. 
+. xi: bootstrap _b[ssp] _b[sfp] _b[sfsp],  reps(500) cluster(id): qreg GPA_year ssp sfp sfsp i.year i.hsgroup if group3, q(`quantile')
+  3.         mat t7[`j',`i']=_b[_bs_3]
+  4.         mat t7[`j'+1,`i']=_se[_bs_3]
+  5. 
+. xi: bootstrap _b[ssp] _b[sfp] _b[sfsp],  reps(500) cluster(id): qreg GPA_year ssp sfp sfsp i.year if group3, q(`quantile')
+  6.         mat t7[`j'+2,`i']=_b[_bs_3]
+  7.         mat t7[`j'+3,`i']=_se[_bs_3]
+  8.         mat t7[`j'+4,`i']=e(N)
+  9.         local ++i
+ 10.         }       
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_* _Ihsgroup_*, q(.1)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |      -.135   .1171588    -1.15   0.249    -.3646271    .0946271
+       _bs_2 |   .0600001   .1064575     0.56   0.573    -.1486527    .2686528
+       _bs_3 |   .3100001   .1387334     2.23   0.025     .0380876    .5819125
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_*, q(.1)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |       -.14   .1711899    -0.82   0.413    -.4755261    .1955261
+       _bs_2 |        .18   .1829591     0.98   0.325    -.1785933    .5385933
+       _bs_3 |        .28    .176052     1.59   0.112    -.0650556    .6250556
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_* _Ihsgroup_*, q(.25)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |        .13   .1249176     1.04   0.298     -.114834     .374834
+       _bs_2 |        .05   .0893697     0.56   0.576    -.1251614    .2251613
+       _bs_3 |   .1899999   .1240149     1.53   0.126    -.0530647    .4330646
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_*, q(.25)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |        .13   .1350284     0.96   0.336    -.1346509    .3946509
+       _bs_2 |        .12   .0924973     1.30   0.195    -.0612914    .3012914
+       _bs_3 |   .2199999   .1430553     1.54   0.124    -.0603834    .5003832
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_* _Ihsgroup_*, q(.5)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |   .1600001   .0824029     1.94   0.052    -.0015066    .3215068
+       _bs_2 |   .0400002   .0917109     0.44   0.663    -.1397499    .2197503
+       _bs_3 |        .24   .1067544     2.25   0.025     .0307653    .4492347
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_*, q(.5)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |        .14   .0958009     1.46   0.144    -.0477662    .3277662
+       _bs_2 |        .23    .088981     2.58   0.010     .0556005    .4043996
+       _bs_3 |        .22   .1095812     2.01   0.045     .0052248    .4347752
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_* _Ihsgroup_*, q(.75)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |        .03   .0912738     0.33   0.742    -.1488933    .2088933
+       _bs_2 |        .03   .0917221     0.33   0.744     -.149772    .2097719
+       _bs_3 |        .25   .1576611     1.59   0.113    -.0590102    .5590102
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_*, q(.75)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |        .01   .1139655     0.09   0.930    -.2133684    .2333683
+       _bs_2 |        .05   .0961387     0.52   0.603    -.1384284    .2384283
+       _bs_3 |   .1899998   .1277818     1.49   0.137    -.0604479    .4404475
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+i.hsgroup         _Ihsgroup_1-3       (naturally coded; _Ihsgroup_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_* _Ihsgroup_*, q(.9)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |          0   .0883456     0.00   1.000    -.1731542    .1731542
+       _bs_2 |  -.0599999   .1354229    -0.44   0.658    -.3254239     .205424
+       _bs_3 |        .24   .1321104     1.82   0.069    -.0189316    .4989317
+------------------------------------------------------------------------------
+i.year            _Iyear_1-2          (naturally coded; _Iyear_1 omitted)
+(running qreg on estimation sample)
+
+Bootstrap replications (500)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+..................................................   150
+..................................................   200
+..................................................   250
+..................................................   300
+..................................................   350
+..................................................   400
+..................................................   450
+..................................................   500
+
+Bootstrap results                               Number of obs     =      1,542
+                                                Replications      =        500
+
+      command:  qreg GPA_year ssp sfp sfsp _Iyear_*, q(.9)
+        _bs_1:  _b[ssp]
+        _bs_2:  _b[sfp]
+        _bs_3:  _b[sfsp]
+
+                                    (Replications based on 826 clusters in id)
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                         Normal-based
+             |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+       _bs_1 |       -.02   .1095196    -0.18   0.855    -.2346545    .1946545
+       _bs_2 |  -.0500002   .0936212    -0.53   0.593    -.2334944     .133494
+       _bs_3 |        .01   .2280107     0.04   0.965    -.4368927    .4568927
+------------------------------------------------------------------------------
+
+. 
+. mat colnames t7= yr1_ols yr1_q10 yr1_q25 yr1_q50 yr1_q75 yr1_q90 
+
+. 
+. mat rownames t7= A_GPA_male cmean "x" ssp "x" sfpany "x" sfp "x" sfsp "x" obs ///
+>                      B_GPA_fem cmean "x" ssp "x" sfpany "x" sfp "x" sfsp "x" obs ///
+>                  C_Limited_Cov SFSP_year "x" SFSP_year_HS "x" obs
+
+.                                   
+. mat li t7
+
+t7[30,6]
+                 yr1_ols     yr1_q10     yr1_q25     yr1_q50     yr1_q75     yr1_q90
+  A_GPA_male           .           .           .           .           .           .
+       cmean   1.9717656         .75        1.34        2.04   2.6600001   3.1400001
+           x   .90826959           .           .           .           .           .
+         ssp  -.00536926  -.07499994   .03757568   .10712037   .03857129  -.06333321
+           x   .09587973    .2089404   .16188296   .12235724   .12294571   .12296473
+      sfpany           .           .           .           .           .           .
+           x           .           .           .           .           .           .
+         sfp  -.10758907  -.01499995  -.04484835  -.18493673  -.20428583  -.08437514
+           x    .0879071   .17117813   .13734999   .11000051   .13125984   .15089614
+        sfsp  -.07805012  -.19499994  -.21060605  -.10775323   .12038626   .21000008
+           x   .13674997   .23038033   .20838881    .1904396   .17199055   .16647218
+         obs        1098        1098        1098        1098        1098        1098
+   B_GPA_fem           .           .           .           .           .           .
+       cmean   1.8650957         .63       1.225         1.9        2.53   3.0799999
+           x   .90684528           .           .           .           .           .
+         ssp   .04256242  -.06510625   .08761904   .13103457   .08777768  -.07356769
+           x   .07481688   .15054728   .14146449   .09955528   .09899343   .10379682
+      sfpany           .           .           .           .           .           .
+           x           .           .           .           .           .           .
+         sfp   .03706372    .0141844  -.04380955    .0027587   .06666676  -.01271844
+           x   .07292458   .10327092   .11236545   .10182877   .08141588   .09322703
+        sfsp   .26399254    .3890071   .27095232    .1868967   .26936506   .29577672
+           x   .09441703   .14396152   .12264534   .11615478   .14672864   .12166989
+         obs        1542        1542        1542        1542        1542        1542
+C_Limited_~v           .           .           .           .           .           .
+   SFSP_year    .2830329   .31000006   .18999994   .24000001         .25   .24000001
+           x   .09317604   .13873339   .12401487   .10675435   .15766115   .13211041
+SFSP_year_HS   .22055847   .28000003   .21999991   .22000003   .18999982   .00999999
+           x   .09996652   .17605202   .14305532   .10958119   .12778178   .22801067
+         obs        1542        1542        1542        1542        1542        1542
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/youpengzhang/Desktop/2018_CGS/referee_report/STARdatapost/DIRECTORY HERE\Table7.log
+  log type:  text
+ closed on:  24 Jul 2018, 20:38:00
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
