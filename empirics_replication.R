@@ -1,0 +1,1707 @@
+#========================== Empirical Results Replication ==============================
+# clean space and set wd
+ls()
+rm(list = ls())
+setwd("/Users/STARdatapost")
+
+# Packages
+library(tidyverse)
+library(psych)
+library(skimr)
+library(dplyr)
+library(plyr)
+library(sandwich)
+library(plm)
+library(lmtest) 
+library(multiwayvcov)
+library(stargazer)
+library(AER)
+library(haven) 
+library(broom)
+library(plotly)
+library(egg)
+library(commarobust) #Robust Standard Errors for Stargazer Integration   
+library(reshape2)
+library(quantreg)
+
+
+#################### data loading ######################
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+############ Table 1-Descriptive Statistics ############
+treat.var <- c("ssp", "sfp" , "sfsp")
+admin.var <- c("numcourses_nov1", "noshow", "compsurv")
+back.var <- c("female", "gpa0", "age", "english", "hcom",
+              "chooseUTM", "work1", "mom1", "mom2", "dad1",
+              "dad2", "lm_rarely", "lm_never", "graddeg", "finish4")
+
+#Administrative variables regression
+for (i in 1:length(admin.var)) {
+  assign(paste("model.admin", i, sep = ""),
+         (lm(as.formula(paste(admin.var[[i]], "~ ssp + sfp + sfsp")), data = dat.STAR)))
+}
+
+#Administrative control group mean and standard deviations 
+dat.STAR %>%
+  group_by(control) %>%
+  summarise(mean.numcourses_nov1 = mean(numcourses_nov1),
+            sd.numcourses_nov1 = sd(numcourses_nov1),
+            mean.noshow = mean(noshow),
+            mean.compsurv = mean(compsurv))
+
+#Background variables regression
+dat.noshow <- subset(dat.STAR, noshow == 0)
+
+for (i in 1:length(back.var)) {
+  assign(paste("model.back", i, sep = ""),
+         (lm(as.formula(paste(back.var[[i]], "~ ssp + sfp + sfsp")), data = dat.noshow)))
+}
+
+#Background control group mean and standard deviations 
+dat.noshow.back <- dat.noshow[, c("control","female", "gpa0", "age", "english", "hcom",
+                                  "chooseUTM", "work1", "mom1", "mom2", "dad1",
+                                  "dad2", "lm_rarely", "lm_never", "graddeg", "finish4")]
+
+dat.noshow.back %>%
+  na.omit(dat.noshow.back) %>%
+  group_by(control) %>%
+  summarise_all("mean")
+
+dat.noshow.back %>%
+  na.omit(dat.noshow.back) %>%
+  group_by(control) %>%
+  summarise(sd.gpa0 = sd(gpa0), sd.age = sd(age)) 
+
+stargazer(model.admin1, model.admin2, model.admin3,
+          type = "latex",
+          omit.stat = c("rsq", "adj.rsq", "ser"),
+          dep.var.labels.include = FALSE,
+          column.labels = c("Courses enrolled fall 2005", "No Show", "Completed survey"),
+          model.names = FALSE,
+          model.numbers = TRUE,
+          no.space = TRUE,
+          title="Descriptive Statistics", align=TRUE)
+
+stargazer(model.back1, model.back2, model.back3, model.back4, model.back5,
+          model.back6, model.back7, model.back8, model.back9, model.back10,
+          model.back11, model.back12, model.back13, model.back14, model.back15,
+          type = "latex",
+          omit.stat = c("rsq", "adj.rsq", "ser"),
+          dep.var.labels.include = FALSE,
+          column.labels = c("female", "gpa0", "age", "english", "hcom",
+          "chooseUTM", "work1", "mom1", "mom2", "dad1",
+          "dad2", "rarely", "never", "graddeg", "finish4"),
+          model.names = FALSE,
+          model.numbers = TRUE,
+          no.space = TRUE,
+          title="Descriptive Statistics", align=TRUE)
+
+
+
+
+############ Table 2-Selection Effects ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Dummy for has fall grades
+dat.STAR$hasfall <- ifelse(is.na(dat.STAR$grade_20059_fall), 0, 1)
+
+#Converting multiple variables to factor
+cols <- c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating three subsets
+dat.noshow <- subset(dat.STAR, noshow == 0)
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female<- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Relevant set of controls
+dep.var <-  c("totcredits_year1", "mathsci", "hasfall")
+basic.var <- c("ssp", "sfp", "sfsp", "sex", "mtongue", "hsgroup", "numcourses_nov1")
+cont.var <- c("ssp", "sfp", "sfsp", "sex", "mtongue", "hsgroup", "numcourses_nov1", 
+              "lastmin", "mom_edn", "dad_edn")
+
+#Control group mean and standard deviations 
+dat.noshow %>%
+  group_by(control) %>%
+  summarise(mean.totcredits_year1 = mean(totcredits_year1),
+            sd.totcredits_year1 = sd(totcredits_year1),
+            mean.mathsci = mean(mathsci),
+            sd.mathsci = sd(mathsci),
+            mean.hasfall = mean(hasfall),
+            sd.hasfall = sd(hasfall))
+
+dat.male %>%
+  group_by(control) %>%
+  summarise(mean.totcredits_year1 = mean(totcredits_year1),
+            sd.totcredits_year1 = sd(totcredits_year1),
+            mean.mathsci = mean(mathsci),
+            sd.mathsci = sd(mathsci),
+            mean.hasfall = mean(hasfall),
+            sd.hasfall = sd(hasfall))
+
+dat.female %>%
+  group_by(control) %>%
+  summarise(mean.totcredits_year1 = mean(totcredits_year1),
+            sd.totcredits_year1 = sd(totcredits_year1),
+            mean.mathsci = mean(mathsci),
+            sd.mathsci = sd(mathsci),
+            mean.hasfall = mean(hasfall),
+            sd.hasfall = sd(hasfall))
+
+#Panel A. All
+for (i in 1:length(dep.var)) {
+  assign(paste("model.noshow.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1")), data = dat.noshow)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.noshow.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.noshow)))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('totcredits_year1 attempted', 'mathsci attempted', 'Has fall grades'),
+          out_file='test_out.tex',
+          model.noshow.basic1, model.noshow.cont1, model.noshow.basic2,
+          model.noshow.cont2, model.noshow.basic3, model.noshow.cont3, 
+          type = "latex",
+          #Robust Standard Errors for Stargazer Integration      
+          se = makerobustseslist(model.noshow.basic1, model.noshow.cont1, model.noshow.basic2,
+                                 model.noshow.cont2, model.noshow.basic3, model.noshow.cont3, type = "HC1"),
+          omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+          omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+          dep.var.labels.include = FALSE,
+          covariate.labels=c("Offered SSP", "Offered SFP", "Offered SSP and SFP ","Constant"),
+          column.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+          model.names = FALSE,
+          model.numbers = TRUE,
+          no.space = TRUE,
+          dep.var.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+          title="Selection Effects", align=TRUE)
+
+#Panel B. Men
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.male)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.male)))
+}
+
+
+custom_table(c('totcredits_year1 attempted', 'mathsci attempted', 'Has fall grades'),
+             out_file='test_out.tex',
+             model.male.basic1, model.male.cont1, model.male.basic2,
+             model.male.cont2, model.male.basic3, model.male.cont3, 
+             type = "latex",
+             se = makerobustseslist(model.male.basic1, model.male.cont1, model.male.basic2,
+                                    model.male.cont2, model.male.basic3, model.male.cont3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("Offered SSP", "Offered SFP", "Offered SSP and SFP ","Constant"),
+             column.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             dep.var.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+             title="Selection Effects", align=TRUE)
+
+#Panel C. Women
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.female)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 +  
+                              lastmin + mom_edn +dad_edn")), data = dat.female)))
+}
+
+custom_table(c('totcredits_year1 attempted', 'mathsci attempted', 'Has fall grades'),
+             out_file='test_out.tex',
+             model.female.basic1, model.female.cont1, model.female.basic2,
+             model.female.cont2, model.female.basic3, model.female.cont3, 
+             type = "latex",
+             se = makerobustseslist(model.female.basic1, model.female.cont1, model.female.basic2,
+                                    model.female.cont2, model.female.basic3, model.female.cont3),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("Offered SSP", "Offered SFP", "Offered SSP and SFP ","Constant"),
+             column.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             dep.var.labels = c("Basic", "All controls","Basic", "All controls","Basic", "All controls"),
+             title="Selection Effects", align=TRUE)
+
+
+
+
+############ Table 3-Program Sign-up and Use of Services ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating three subsets
+dat.noshow <- subset(dat.STAR, noshow == 0)
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female<- subset(dat.noshow, sex == "F")
+dat.list <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Relevant set of dependent variables
+dep.var <-  c("used_ssp", "used_adv", "used_fsg")
+
+#Panel A. All
+model.noshow.signup1 <- lm(signup ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1, data = dat.noshow)
+model.noshow.signup2 <- lm(signup ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                           lastmin + mom_edn + dad_edn, data = dat.noshow)
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.noshow.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp + sex + mtongue + hsgroup + numcourses_nov1")), data = dat.noshow)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.noshow.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.noshow)))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('signup', 'usedssp', 'usedadv', 'usedfsg'),
+             out_file='test_out.tex',
+             model.noshow.signup1, model.noshow.signup2, model.noshow.basic1, model.noshow.cont1, 
+             model.noshow.basic2, model.noshow.cont2, model.noshow.basic3, model.noshow.cont3, 
+             type = "latex",
+             se = makerobustseslist(model.noshow.signup1, model.noshow.signup2, model.noshow.basic1, model.noshow.cont1, 
+                                    model.noshow.basic2, model.noshow.cont2, model.noshow.basic3, model.noshow.cont3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "Constant"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("Offered SSP", "Offered SFP", "Offered SFSP ","Constant"),
+             column.labels = c("Basic", "Controls","Basic", "Controls","Basic", "Controls","Basic", "Controls"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Program Sign-up and Use of Services: Panel A. All", align=TRUE)
+
+#Panel B. Men
+model.male.signup1 <- lm(signup ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1, data = dat.male)
+model.male.signup2 <- lm(signup ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+                         lastmin + mom_edn + dad_edn, data = dat.male)
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.male)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp  + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.male)))
+}
+
+custom_table(c('signup', 'usedssp', 'usedadv', 'usedfsg'),
+             out_file='test_out.tex',
+             model.male.signup1, model.male.signup2, model.male.basic1, model.male.cont1, 
+             model.male.basic2, model.male.cont2, model.male.basic3, model.male.cont3, 
+             type = "latex",
+             se = makerobustseslist(model.male.signup1, model.male.signup2, model.male.basic1, model.male.cont1, 
+                                    model.male.basic2, model.male.cont2, model.male.basic3, model.male.cont3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "Constant"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("Offered SSP", "Offered SFP", "Offered SFSP ","Constant"),
+             column.labels = c("Basic", "Controls","Basic", "Controls","Basic", "Controls","Basic", "Controls"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Program Sign-up and Use of Services: Panel B. Men", align=TRUE)
+
+#Panel C. Women
+model.female.signup1 <- lm(signup ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1, data = dat.female)
+model.female.signup2 <- lm(signup ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+                           lastmin + mom_edn + dad_edn, data = dat.female)
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.female)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+                           lastmin + mom_edn + dad_edn")), data = dat.female)))
+}
+
+custom_table(c('signup', 'usedssp', 'usedadv', 'usedfsg'),
+             out_file='test_out.tex',
+             model.female.signup1, model.female.signup2, model.female.basic1, model.female.cont1, 
+             model.female.basic2, model.female.cont2, model.female.basic3, model.female.cont3, 
+             type = "latex",
+             se = makerobustseslist(model.female.signup1, model.female.signup2, model.female.basic1, model.female.cont1, 
+                                    model.female.basic2, model.female.cont2, model.female.basic3, model.female.cont3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "Constant"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("Offered SSP", "Offered SFP", "Offered SFSP ","Constant"),
+             column.labels = c("Basic", "Controls","Basic", "Controls","Basic", "Controls","Basic", "Controls"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Program Sign-up and Use of Services: Panel C. Women", align=TRUE)
+
+
+
+############ Table 4-Analysis of Gender-Adviser Interaction ############
+#data is not available
+
+
+
+
+############ Table 5- Treatment Effects on First Year Outcomes in the Sample with Fall Grades ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Control group mean and standard deviations 
+dat.STAR.ms <- dat.STAR[ ,c("sex","noshow","control","grade_20059_fall", "GPA_year1")]
+dat.noshow.ms <- subset(dat.STAR.ms, noshow == 0)
+dat.male.ms <- subset(dat.noshow.ms, sex == "M")
+dat.female.ms <- subset(dat.noshow.ms, sex == "F")
+
+dat.noshow.ms %>%
+  na.omit(dat.noshow.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+dat.male.ms %>%
+  na.omit(dat.male.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+dat.female.ms %>%
+  na.omit(dat.female.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+#Only do GPA for FALL grade sample
+dat.STAR$GPA_year1[dat.STAR$grade_20059_fall =='.'] = '.'
+
+#Only do FALL grade for GPA sample
+dat.STAR$grade_20059_fall[dat.STAR$GPA_year1 =='.'] = '.'
+
+#New dummy for any SFP
+dat.STAR$sfpany <- as.integer(dat.STAR$sfp|dat.STAR$sfsp)
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating three subsets
+dat.noshow <- subset(dat.STAR, noshow == 0)
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female <- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Relevant set of dependent variables
+dep.var <-  c("grade_20059_fall", "GPA_year1")
+
+#Panel A. Fall grade
+model.fall.type1 <- lm(grade_20059_fall ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                         lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.fall.type", i, sep = ""), 
+         (lm(grade_20059_fall ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+             lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.fall.any1 <- lm(grade_20059_fall ~ ssp + sfpany + sex + mtongue + hsgroup + numcourses_nov1 + 
+                         lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.fall.any", i, sep = ""), 
+         (lm(grade_20059_fall ~ ssp + sfpany + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('SFP by type', 'Any SFP'),
+             out_file='test_out.tex',
+             model.fall.type1, model.fall.type2, model.fall.type3, 
+             model.fall.any1, model.fall.any2, model.fall.any3, 
+             type = "latex",
+             se=makerobustseslist(model.fall.type1, model.fall.type2, model.fall.type3, 
+                                  model.fall.any1, model.fall.any2, model.fall.any3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "Constant"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP ","SFP(any)"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             notes = "The table reports regression estimates of treatment effects on full grades as the dependent variable using the full set of controls. Robust standard errors are reported in parentheses. The sample is limited to students registered for at least two courses as of November 1 with data on the relevant set of controls and at least one fall grade. The last three columns report estimates from a model that combines the SFP and SFSP treatment groups into “SFP (any).”",
+             notes.align = "l",
+             title="Treatment Effects on First Year Outcomes in the Sample with Fall Grades: Panel A. Fall grade", align=TRUE)
+
+#Panel B. First year GPA
+model.year.type1 <- lm(GPA_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                         lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.year.type", i, sep = ""), 
+         (lm(GPA_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.year.any1 <- lm(GPA_year1 ~ ssp + sfpany + sex + mtongue + hsgroup + numcourses_nov1 + 
+                         lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.year.any", i, sep = ""), 
+         (lm(GPA_year1 ~ ssp + sfpany + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+custom_table(c('SFP by type', 'Any SFP'),
+             out_file='test_out.tex',
+             model.year.type1, model.year.type2, model.year.type3, 
+             model.year.any1, model.year.any2, model.year.any3, 
+             type = "latex",
+             se=makerobustseslist(model.year.type1, model.year.type2, model.year.type3, 
+                                  model.year.any1, model.year.any2, model.year.any3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "Constant"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP ","SFP(any)"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First Year Outcomes in the Sample with Fall Grades: Panel B. First year GPA", align=TRUE)
+
+
+
+############ Table 6-Treatment Effects on First and Second Year Outcomes ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating subset
+dat.noshow <- subset(dat.STAR, noshow == 0)
+
+#Control group mean and standard deviations
+dat.noshow.ms <- dat.noshow[ ,c("sex", "control","GPA_year1", "GPA_year2", "prob_year1", "prob_year2", 
+                                "goodstanding_year1", "goodstanding_year2", "credits_earned1","credits_earned2")]
+dat.male.ms <- subset(dat.noshow.ms, sex == "M")
+dat.female.ms <- subset(dat.noshow.ms, sex == "F")
+
+ddply(dat.noshow.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.noshow.ms, .(control), colwise(sd), na.rm=TRUE)
+ddply(dat.male.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.male.ms, .(control), colwise(sd), na.rm=TRUE)
+ddply(dat.female.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.female.ms, .(control), colwise(sd), na.rm=TRUE)
+
+#ADDITIONAL SAMPLE SELECTION
+dat.noshow$prob_year1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$prob_year2[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$goodstanding_year1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$goodstanding_year2[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$credits_earned1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$credits_earned2[dat.noshow$prob_year1 =='.'] = '.'
+
+#Sample in all control spec
+dat.noshow <- subset(dat.noshow, sex!="" & mtongue!="" & hsgroup!="." & 
+                       numcourses_nov1!="." & lastmin!="." & mom_edn!="." & dad_edn!=".")
+
+#Creating subsets and data list
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female <- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Panel A. GPA
+model.GPA.one1 <- lm(GPA_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+     lastmin + mom_edn + dad_edn, data = dat.noshow)
+
+for (i in 2:3) {
+  assign(paste("model.GPA.one", i, sep = ""), 
+         (lm(GPA_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+             lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.GPA.two1 <- lm(GPA_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn, data = dat.noshow)
+
+for (i in 2:3) {
+  assign(paste("model.GPA.two", i, sep = ""), 
+         (lm(GPA_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+             lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.GPA.one1, model.GPA.one2, model.GPA.one3, 
+             model.GPA.two1, model.GPA.two2, model.GPA.two3, 
+             type = "latex",
+             se = makerobustseslist(model.GPA.one1, model.GPA.one2, model.GPA.one3, 
+                                    model.GPA.two1, model.GPA.two2, model.GPA.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes: Panel A. GPA", align=TRUE)
+
+#Panel B. On Probation/Withdrew
+model.prob.one1 <- lm(prob_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.prob.one", i, sep = ""), 
+         (lm(prob_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.prob.two1 <- lm(prob_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.prob.two", i, sep = ""), 
+         (lm(prob_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.prob.one1, model.prob.one2, model.prob.one3, 
+             model.prob.two1, model.prob.two2, model.prob.two3, 
+             type = "latex",
+             se = makerobustseslist(model.prob.one1, model.prob.one2, model.prob.one3, 
+                                    model.prob.two1, model.prob.two2, model.prob.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes: Panel B. On Probation/withdrew", 
+             align=TRUE)
+
+#Panel C. Good Standing
+model.gds.one1 <- lm(goodstanding_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.gds.one", i, sep = ""), 
+         (lm(goodstanding_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.gds.two1 <- lm(goodstanding_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.gds.two", i, sep = ""), 
+         (lm(goodstanding_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.gds.one1, model.gds.one2, model.gds.one3, 
+             model.gds.two1, model.gds.two2, model.gds.two3, 
+             type = "latex",
+             se = makerobustseslist(model.gds.one1, model.gds.one2, model.gds.one3, 
+                                    model.gds.two1, model.gds.two2, model.gds.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes: Panel C. Good standing", 
+             align=TRUE)
+
+#Panel D. Credits Earned
+model.cred.one1 <- lm(credits_earned1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.cred.one", i, sep = ""), 
+         (lm(credits_earned1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+model.cred.two1 <- lm(credits_earned2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.cred.two", i, sep = ""), 
+         (lm(credits_earned2 ~ ssp +  sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.cred.one1, model.cred.one2, model.cred.one3, 
+             model.cred.two1, model.cred.two2, model.cred.two3, 
+             type = "latex",
+             se = makerobustseslist(model.cred.one1, model.cred.one2, model.cred.one3, 
+                                    model.cred.two1, model.cred.two2, model.cred.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes: Panel D. Credits earned", 
+             align=TRUE)
+
+
+
+
+############ Table 7-OLS and Quantile Treatment Effects on GPA (Stacked) ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Sample in all control spec
+dat.STAR <- subset(dat.STAR, sex!="" & mtongue!="" & hsgroup!="." & 
+                     numcourses_nov1!="." & lastmin!="." & mom_edn!="." & dad_edn!=".")
+
+#Creating subsets
+dat.noshow <- subset(dat.STAR, noshow == 0)
+
+dat.noshow <- dat.noshow[, c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", 
+                             "GPA_year1", "GPA_year2", "ssp", "sfp", "sfsp", "control")]
+
+#Generate ID
+dat.STAR <- mutate(dat.STAR, id = rownames(dat.STAR))
+
+#Stack the data (reshaping wide to long)
+dat.noshow = reshape(data = dat.noshow,
+                     idvar = "id",
+                     varying = c("GPA_year1", "GPA_year2"),
+                     sep = "",
+                     timevar = "year",
+                     times = c(1,2),
+                     new.row.names= 1:10000,
+                     direction = "long")
+
+#Creating subsets and list the datasets
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female <- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow,"dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Control group mean and standard deviations
+dat.male %>%
+  na.omit(dat.male) %>%
+  group_by(control) %>%
+  summarise(mean.male.GPA_year = mean(GPA_year),
+            sd.male.GPA_year = sd(GPA_year))
+dat.female %>%
+  na.omit(dat.female) %>%
+  group_by(control) %>%
+  summarise(mean.female.GPA_year = mean(GPA_year),
+            sd.female.GPA_year = sd(GPA_year))
+
+#Panel A. Males and Panel B. Females
+#OLS
+for (i in 2:3) {
+  assign(paste("model.ols", i, sep = ""), 
+         (lm(GPA_year ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + year, data = list_data[[i]])))
+}
+
+#Quantile regressions
+for (i in 2:3) {
+  assign(paste("model.quan", i, sep = ""), 
+         (rq(GPA_year ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + year, tau=c(.1, .25, .5, .75, .9), data = list_data[[i]])))
+}
+
+#Quantile standard errors are bootstrapped using 500 replications
+summary(model.quan2, se = "boot", R = 500, bsmethod= "xy", cluter = "id")
+summary(model.quan3, se = "boot", R = 500, bsmethod= "xy", cluter = "id")
+
+#Panel C. female SFSP effects with limited sets of covariates
+#OLS
+model.ols.female1 <- lm(GPA_year ~ ssp + sfp + sfsp + year + hsgroup, data = dat.female)
+model.ols.female2 <- lm(GPA_year ~ ssp + sfp + sfsp + year, data = dat.female)
+
+#Quantile regressions
+model.quan.female1 <- rq(GPA_year ~ ssp + sfp + sfsp + year + hsgroup,
+                         tau=c(.1, .25, .5, .75, .9), data=dat.female)
+model.quan.female2 <- rq(GPA_year ~ ssp + sfp + sfsp + year,
+                         tau=c(.1, .25, .5, .75, .9), data=dat.female)
+#Quantile standard errors are bootstrapped using 500 replications
+summary(model.quan.female1, se = "boot", R = 500, bsmethod= "xy", cluter = "id")
+summary(model.quan.female2, se = "boot", R = 500, bsmethod= "xy", cluter = "id")
+
+#Standard errors are not clustered at the student level successfully via stargazer. 
+#Please see the following code for clustered standard errors as matrix form
+stargazer(model.ols2, model.ols3, model.ols.female1, model.ols.female2, 
+          type = "latex",
+          se = list((coef(summary(model.ols2,cluster = c("id")))[, 2]),
+                    (coef(summary(model.ols3,cluster = c("id")))[, 2]),
+                    (coef(summary(model.ols.female1,cluster = c("id")))[, 2]),
+                    (coef(summary(model.ols.female2,cluster = c("id")))[, 2])),
+          omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+          omit = c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "year"),
+          dep.var.labels.include = FALSE,
+          dep.var.caption = "Dependent Variable: GPA",
+          column.labels = c("Males", "Females", "Females control for year and gpa0","Females Control for year"),
+          covariate.labels = c("SSP", "SFP","SFSP"),
+          model.names = FALSE,
+          model.numbers = TRUE,
+          title="OLS Treatment Effects on GPA (Stacked)", 
+          align=TRUE)
+
+#Function for Robust Standard Errors and Clustered Standard Errors 
+ols <- function(form, data, robust=FALSE, cluster=NULL,digits=3){
+  r1 <- lm(form, data)
+  if(length(cluster)!=0){
+    data <- na.omit(data[,c(colnames(r1$model),cluster)])
+    r1 <- lm(form, data)
+  }
+  X <- model.matrix(r1)
+  n <- dim(X)[1]
+  k <- dim(X)[2]
+  if(robust==FALSE & length(cluster)==0){
+    se <- sqrt(diag(solve(crossprod(X)) * as.numeric(crossprod(resid(r1))/(n-k))))
+    res <- cbind(coef(r1),se)
+  }
+  if(robust==TRUE){
+    u <- matrix(resid(r1))
+    meat1 <- t(X) %*% diag(diag(crossprod(t(u)))) %*% X
+    dfc <- n/(n-k)    
+    se <- sqrt(dfc*diag(solve(crossprod(X)) %*% meat1 %*% solve(crossprod(X))))
+    res <- cbind(coef(r1),se)
+  }
+  if(length(cluster)!=0){
+    clus <- cbind(X,data[,cluster],resid(r1))
+    colnames(clus)[(dim(clus)[2]-1):dim(clus)[2]] <- c(cluster,"resid")
+    m <- dim(table(clus[,cluster]))
+    dfc <- (m/(m-1))*((n-1)/(n-k))
+    uclust  <- apply(resid(r1)*X,2, function(x) tapply(x, clus[,cluster], sum))
+    se <- sqrt(diag(solve(crossprod(X)) %*% (t(uclust) %*% uclust) %*% solve(crossprod(X)))*dfc)   
+    res <- cbind(coef(r1),se)
+  }
+  res <- cbind(res,res[,1]/res[,2],(1-pnorm(res[,1]/res[,2]))*2)
+  res1 <- matrix(as.numeric(sprintf(paste("%.",paste(digits,"f",sep=""),sep=""),res)),nrow=dim(res)[1])
+  rownames(res1) <- rownames(res)
+  colnames(res1) <- c("Estimate","Std. Error","t value","Pr(>|t|)")
+  return(res1)
+}
+
+#OLS: Clustered Standard Errors 
+for (i in 2:3) {
+  assign(paste("model.ols.cl", i, sep = ""), 
+         (ols(GPA_year ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + year, data = list_data[[i]], cluster="id")))
+}
+head(model.ols.cl2, 4)
+head(model.ols.cl3, 4)
+
+#OLS: Clustered Standard Errors 
+model.ols.cl.female1 <- ols(GPA_year ~ ssp + sfp + sfsp + year + hsgroup, data = dat.female, cluster="id")
+model.ols.cl.female2 <- ols(GPA_year ~ ssp + sfp + sfsp + year, data = dat.female, cluster="id")
+head(model.ols.cl.female1, 4)
+head(model.ols.cl.female2, 4)
+
+
+
+############ Table 8-2SLS Estimates for Women (Stacked) ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating subset
+dat.noshow <- subset(dat.STAR, noshow == 0)
+dat.female <- subset(dat.noshow, sex == "F")
+
+#Sample in all control spec
+dat.female <- subset(dat.female, sex!="" & mtongue!="" & hsgroup!="." & 
+                       numcourses_nov1!="." & lastmin!="." & mom_edn!="." & dad_edn!=".")
+
+var.year <-  c("prob_year1", "prob_year2",
+               "goodstanding_year1", "goodstanding_year2",
+               "credits_earned1", "credits_earned2")
+
+dat.female$prob_year1[dat.female$prob_year1 =='.'] = '.'
+dat.female$prob_year2[dat.female$prob_year1 =='.'] = '.'
+dat.female$goodstanding_year1[dat.female$prob_year1 =='.'] = '.'
+dat.female$goodstanding_year2[dat.female$prob_year1 =='.'] = '.'
+dat.female$credits_earned1[dat.female$prob_year1 =='.'] = '.'
+dat.female$credits_earned2[dat.female$prob_year1 =='.'] = '.'
+
+dat.female <- dat.female[, c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", 
+                             "GPA_year1", "GPA_year2", "ssp", "sfp", "sfsp", "control", "prob_year1", "prob_year2", 
+                             "credits_earned1","credits_earned2", "ssp_p", "sfp_p", "sfsp_p", "sfpany_p")]
+
+#Generate ID
+dat.female <- mutate(dat.female, id = rownames(dat.female))
+
+#Stack the data (reshaping wide to long)
+dat.female = reshape(data = dat.female,
+                     idvar = "id",
+                     varying = c("GPA_year1", "GPA_year2", "prob_year1", "prob_year2", "credits_earned1", "credits_earned2"),
+                     sep = "",
+                     timevar = "year",
+                     times = c(1,2),
+                     new.row.names= 1:10000,
+                     direction = "long")
+
+#Control group mean and standard deviations
+dat.female.ms <- dat.female[ ,c("control", "GPA_year", "prob_year","credits_earned")]
+dat.female.ms$prob_year <- as.numeric(dat.female.ms$prob_year)
+dat.female.ms$credits_earned <- as.numeric(dat.female.ms$credits_earned)
+dat.female.ms <- dat.female.ms[ ,c("control", "GPA_year", "prob_year","credits_earned")]
+ddply(dat.female.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.female.ms, .(control), colwise(sd), na.rm=TRUE)
+
+#Function for Robust Standard Errors and Clustered Standard Errors 
+ols <- function(form, data, robust=FALSE, cluster=NULL,digits=3){
+  r1 <- lm(form, data)
+  if(length(cluster)!=0){
+    data <- na.omit(data[,c(colnames(r1$model),cluster)])
+    r1 <- lm(form, data)
+  }
+  X <- model.matrix(r1)
+  n <- dim(X)[1]
+  k <- dim(X)[2]
+  if(robust==FALSE & length(cluster)==0){
+    se <- sqrt(diag(solve(crossprod(X)) * as.numeric(crossprod(resid(r1))/(n-k))))
+    res <- cbind(coef(r1),se)
+  }
+  if(robust==TRUE){
+    u <- matrix(resid(r1))
+    meat1 <- t(X) %*% diag(diag(crossprod(t(u)))) %*% X
+    dfc <- n/(n-k)    
+    se <- sqrt(dfc*diag(solve(crossprod(X)) %*% meat1 %*% solve(crossprod(X))))
+    res <- cbind(coef(r1),se)
+  }
+  if(length(cluster)!=0){
+    clus <- cbind(X,data[,cluster],resid(r1))
+    colnames(clus)[(dim(clus)[2]-1):dim(clus)[2]] <- c(cluster,"resid")
+    m <- dim(table(clus[,cluster]))
+    dfc <- (m/(m-1))*((n-1)/(n-k))
+    uclust  <- apply(resid(r1)*X,2, function(x) tapply(x, clus[,cluster], sum))
+    se <- sqrt(diag(solve(crossprod(X)) %*% (t(uclust) %*% uclust) %*% solve(crossprod(X)))*dfc)   
+    res <- cbind(coef(r1),se)
+  }
+  res <- cbind(res,res[,1]/res[,2],(1-pnorm(res[,1]/res[,2]))*2)
+  res1 <- matrix(as.numeric(sprintf(paste("%.",paste(digits,"f",sep=""),sep=""),res)),nrow=dim(res)[1])
+  rownames(res1) <- rownames(res)
+  colnames(res1) <- c("Estimate","Std. Error","t value","Pr(>|t|)")
+  return(res1)
+}
+
+#2SLS for SFP by type
+model.end.type1 <- lm(ssp_p ~ ssp, data = dat.female)
+model.end.type2 <- lm(sfp_p ~ sfp, data = dat.female)
+model.end.type3 <- lm(sfsp_p ~ sfsp, data = dat.female)
+
+ssp_p.type.fitted <- model.end.type1$fitted.values
+sfp_p.type.fitted <- model.end.type2$fitted.values
+sfsp_p.type.fitted <- model.end.type3$fitted.values
+
+dat.female <- cbind(dat.female, ssp_p.type.fitted = ssp_p.type.fitted, 
+                    sfp_p.type.fitted = sfp_p.type.fitted, sfsp_p.type.fitted = sfsp_p.type.fitted )
+
+dep.var <-  c("GPA_year", "prob_year", "credits_earned")
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.type", i, sep = ""),
+         (ols(as.formula(paste(dep.var[[i]], "~ ssp_p.type.fitted + sfp_p.type.fitted + sfsp_p.type.fitted + mtongue + hsgroup + numcourses_nov1 +
+                               lastmin + mom_edn + dad_edn + year")), dat.female, cluster="id")))
+}
+head(model.female.type1, 4)
+head(model.female.type2, 4)
+head(model.female.type3, 4)
+
+#2SLS for any SFP 
+model.end.any1 <- lm(ssp_p ~ ssp, data = dat.female)
+model.end.any2 <- lm(sfpany_p ~ sfp + sfsp, data = dat.female)
+
+ssp_p.any.fitted <- model.end.any1$fitted.values
+sfpany_p.any.fitted <- model.end.any2$fitted.values
+
+dat.female <- cbind(dat.female, ssp_p.any.fitted = ssp_p.any.fitted, 
+                    sfpany_p.any.fitted = sfpany_p.any.fitted)
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.any", i, sep = ""),
+         (ols(as.formula(paste(dep.var[[i]], "~ ssp_p.any.fitted  + sfpany_p.any.fitted + mtongue + hsgroup + numcourses_nov1 +
+                               lastmin + mom_edn + dad_edn + year")), data = dat.female, cluster="id")))
+}
+head(model.female.any1, 3)
+head(model.female.any2, 3)
+head(model.female.any3, 3)
+
+
+
+############ Figure 1a. Males' Normalized First-Year GPA ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols], factor)
+
+#"NORMALIZE" GPA VALUES
+dat.STAR <- transform(dat.STAR, GPA_year1 = ifelse(hsgroup == 1, 
+                                                   GPA_year1 +.3, GPA_year1))
+dat.STAR <- transform(dat.STAR, GPA_year1 = ifelse(hsgroup == 3,
+                                                   GPA_year1 -.3, GPA_year1))
+#Subset                                                                                                     
+dat.noshow <- subset(dat.STAR, noshow == 0)
+
+#Control vs. SSP
+maleGPA.cont <- subset(dat.noshow, control == 1 & sex == "M" & GPA_year1 >= 0 , 
+                  select=c(GPA_year1))
+maleGPA.ssp <- subset(dat.noshow, ssp == 1 & sex == "M" & GPA_year1 >= 0, 
+                     select=c(GPA_year1))
+
+male.cont.vs.ssp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.02), 
+             family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.1, 0.2, 0.3, 0.4),  color = "grey90") +
+  stat_density(data = maleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = maleGPA.ssp, aes(x=GPA_year1, color="SSP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SSP")) +
+  ggtitle("Control vs. SSP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(male.cont.vs.ssp)
+
+
+#Control vs. SFP
+maleGPA.sfp <- subset(dat.noshow, sfp == 1 & sex == "M" & GPA_year1 >= 0, 
+                      select=c(GPA_year1))
+
+male.cont.vs.sfp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.03), 
+            family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.03), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.03), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.1, 0.2, 0.3, 0.4, 0.5),  color = "grey90") +
+  stat_density(data = maleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = maleGPA.sfp, aes(x=GPA_year1, color="SFP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SFP")) +
+  ggtitle("Control vs. SFP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(male.cont.vs.sfp)
+
+#Control vs. SFSP
+maleGPA.sfsp <- subset(dat.noshow, sfsp == 1 & sex == "M" & GPA_year1 >= 0, 
+                      select=c(GPA_year1))
+
+male.cont.vs.sfsp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.02), 
+            family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.1, 0.2, 0.3, 0.4),  color = "grey90") +
+  stat_density(data = maleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = maleGPA.sfsp, aes(x=GPA_year1, color="SFSP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SFSP")) +
+  ggtitle("Control vs. SFSP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(male.cont.vs.sfsp)
+
+#Aligned Results
+figure <- egg::ggarrange(male.cont.vs.ssp, male.cont.vs.sfp, male.cont.vs.sfsp, nrow = 1)
+
+
+
+
+############ Figure 1b. Females' Normalized First-Year GPA ############
+#Control vs. SSP
+femaleGPA.cont <- subset(dat.noshow, control == 1 & sex == "F" & GPA_year1 >= 0 , 
+                       select=c(GPA_year1))
+femaleGPA.ssp <- subset(dat.noshow, ssp == 1 & sex == "F" & GPA_year1 >= 0, 
+                      select=c(GPA_year1))
+
+female.cont.vs.ssp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.04), 
+            family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.04), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.04), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.2, 0.4, 0.6),  color = "grey90") +
+  stat_density(data = femaleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = femaleGPA.ssp, aes(x=GPA_year1, color="SSP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SSP")) +
+  ggtitle("Control vs. SSP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(female.cont.vs.ssp)
+
+
+#Control vs. SFP
+femaleGPA.sfp <- subset(dat.noshow, sfp == 1 & sex == "F" & GPA_year1 >= 0, 
+                      select=c(GPA_year1))
+
+female.cont.vs.sfp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.02), 
+            family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.02), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.1, 0.2, 0.3, 0.4),  color = "grey90") +
+  stat_density(data = femaleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = femaleGPA.sfp, aes(x=GPA_year1, color="SFP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SFP")) +
+  ggtitle("Control vs. SFP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(female.cont.vs.sfp)
+
+#Control vs. SFSP
+femaleGPA.sfsp <- subset(dat.noshow, sfsp == 1 & sex == "F" & GPA_year1 >= 0, 
+                       select=c(GPA_year1))
+
+female.cont.vs.sfsp <- ggplot() +
+  scale_x_continuous(breaks=c(0, 0.3, 0.7, 1, 1.3, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4)) +
+  geom_vline(xintercept = 2.7,  color = "grey90") + 
+  geom_text(aes(x = 2.7, label = "1000 \n cutoff", y = 0.03), 
+            family = 'sans', angle=0, color = 'black', size = 3, alpha = 4/5) +
+  geom_vline(xintercept = 3,  color = "grey90") + 
+  geom_text(aes(x = 3, label = "2500 \n cutoff", y = 0.03), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_vline(xintercept = 3.3,  color = "grey90") + 
+  geom_text(aes(x = 3.3, label = "5000 \n cutoff ", y = 0.03), 
+            family = 'sans', angle=0,  color = "black", size = 3, alpha = 4/5 ) +
+  geom_hline(yintercept = c(0, 0.1, 0.2, 0.3, 0.4, 0.5),  color = "grey90") +
+  stat_density(data = femaleGPA.cont, aes(x=GPA_year1, color="Control"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  stat_density(data = femaleGPA.sfsp, aes(x=GPA_year1, color="SFSP"), geom="line", position="identity", 
+               kernel = "gaussian", size = 1) +
+  xlab("First Year GPA") +
+  scale_colour_manual(values = c("blue","black"),labels=c("Control","SFSP")) +
+  ggtitle("Control vs. SFSP") +
+  theme_bw() + 
+  guides(color=guide_legend(""))+
+  theme(axis.title.y=element_blank(),
+        panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) 
+print(female.cont.vs.sfsp)
+
+#Aligned Results
+figure <- egg::ggarrange(female.cont.vs.ssp, female.cont.vs.sfp, female.cont.vs.sfsp, nrow = 1)
+
+
+
+
+############  Robustness Check (Different choices of controls) ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Control group mean and standard deviations 
+dat.STAR.ms <- dat.STAR[ ,c("sex","noshow","control","grade_20059_fall", "GPA_year1")]
+dat.noshow.ms <- subset(dat.STAR.ms, noshow == 0)
+dat.male.ms <- subset(dat.noshow.ms, sex == "M")
+dat.female.ms <- subset(dat.noshow.ms, sex == "F")
+
+dat.noshow.ms %>%
+  na.omit(dat.noshow.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+dat.male.ms %>%
+  na.omit(dat.male.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+dat.female.ms %>%
+  na.omit(dat.female.ms) %>%
+  group_by(control) %>%
+  summarise(mean.grade_20059_fall = mean(grade_20059_fall),
+            sd.grade_20059_fall = sd(grade_20059_fall),
+            mean.GPA_year1 = mean(GPA_year1),
+            sd.GPA_year1 = sd(GPA_year1))
+
+#Only do GPA for FALL grade sample
+dat.STAR$GPA_year1[dat.STAR$grade_20059_fall =='.'] = '.'
+
+#Only do FALL grade for GPA sample
+dat.STAR$grade_20059_fall[dat.STAR$GPA_year1 =='.'] = '.'
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating three subsets
+dat.noshow <- subset(dat.STAR, noshow == 0)
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female <- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Relevant set of dependent variables
+dep.var <-  c("grade_20059_fall", "GPA_year1")
+
+#Panel A. All Students with Fall Grades 
+for (i in 1:length(dep.var)) {
+  assign(paste("model.all.no", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp")), data = dat.noshow)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.all.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1")), data = dat.noshow)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.all.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.noshow)))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('Fall Grade', 'First-year Grade'),
+             out_file='test_out.tex',
+             model.all.no1, model.all.basic1, model.all.cont1, 
+             model.all.no2, model.all.basic2, model.all.cont2, 
+             type = "latex",
+             se=makerobustseslist(model.all.no1, model.all.basic1, model.all.cont1, 
+                                  model.all.no2, model.all.basic2, model.all.cont2, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP ", "Constant"),
+             column.labels = c("No Controls", "Basic", "All", "No Controls", "Basic", "All"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             notes = "The table reports regression estimates of treatment effects 
+             on Fall grades and First-year grades as the dependent variable using the different set of controls. 
+             Robust standard errors are reported in parentheses. 
+             The sample is limited to students registered for at least two courses 
+             as of November 1 with data on the relevant set of controls and at least one fall grade. ",
+             notes.align = "l",
+             title="Treatment Effects on Fall Grade and First-year Grades(Fall grades sample): Panel A. All Students with Fall Grades", align=TRUE)
+
+#Panel B: Males
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.no", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp")), data = dat.male)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.male)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.male.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.male)))
+}
+
+custom_table(c('Fall Grade', 'First-year Grade'),
+             out_file='test_out.tex',
+             model.male.no1, model.male.basic1, model.male.cont1, 
+             model.male.no2, model.male.basic2, model.male.cont2, 
+             type = "latex",
+             se=makerobustseslist(model.male.no1, model.male.basic1, model.male.cont1, 
+                                  model.male.no2, model.male.basic2, model.male.cont2, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP ", "Constant"),
+             column.labels = c("No Controls", "Basic", "All", "No Controls", "Basic", "All"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             notes = "The table reports regression estimates of treatment effects 
+             on Fall grades and First-year grades as the dependent variable using the different set of controls. 
+             Robust standard errors are reported in parentheses. 
+             The sample is limited to students registered for at least two courses 
+             as of November 1 with data on the relevant set of controls and at least one fall grade. ",
+             notes.align = "l",
+             title="Treatment Effects on Fall Grade and First-year Grades(Fall grades sample): Panel B: Males", align=TRUE)
+
+#Panel C: Females
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.no", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp")), data = dat.female)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.basic", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1")), data = dat.female)))
+}
+
+for (i in 1:length(dep.var)) {
+  assign(paste("model.female.cont", i, sep = ""),
+         (lm(as.formula(paste(dep.var[[i]], "~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 +
+                              lastmin + mom_edn +dad_edn")), data = dat.female)))
+}
+
+custom_table(c('Fall Grade', 'First-year Grade'),
+             out_file='test_out.tex',
+             model.female.no1, model.female.basic1, model.female.cont1, 
+             model.female.no2, model.female.basic2, model.female.cont2, 
+             type = "latex",
+             se=makerobustseslist(model.all.no1, model.all.basic1, model.all.cont1, 
+                                  model.all.no2, model.all.basic2, model.all.cont2, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP ", "Constant"),
+             column.labels = c("No Controls", "Basic", "All", "No Controls", "Basic", "All"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             notes = "The table reports regression estimates of treatment effects 
+             on Fall grades and First-year grades as the dependent variable using the different set of controls. 
+             Robust standard errors are reported in parentheses. 
+             The sample is limited to students registered for at least two courses 
+             as of November 1 with data on the relevant set of controls and at least one fall grade. ",
+             notes.align = "l",
+             title="Treatment Effects on Fall Grade and First-year Grades(Fall grades sample): Panel C. Females", align=TRUE)
+
+
+
+############ Robustness Check (Different size of the group) ############
+rm(list = ls())
+dat.STAR <- read_dta("STAR_public_use.dta")
+
+#Converting multiple variables to factor
+cols <- c("mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn")
+dat.STAR[,cols] <- lapply(dat.STAR[,cols] , factor)
+
+#Creating subset
+dat.noshow <- subset(dat.STAR, noshow == 0 & compsurv == 1)
+
+#Control group mean and standard deviations
+dat.noshow.ms <- dat.noshow[ ,c("sex", "control","GPA_year1", "GPA_year2", "prob_year1", "prob_year2", 
+                                "goodstanding_year1", "goodstanding_year2", "credits_earned1","credits_earned2")]
+dat.male.ms <- subset(dat.noshow.ms, sex == "M")
+dat.female.ms <- subset(dat.noshow.ms, sex == "F")
+
+ddply(dat.noshow.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.noshow.ms, .(control), colwise(sd), na.rm=TRUE)
+ddply(dat.male.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.male.ms, .(control), colwise(sd), na.rm=TRUE)
+ddply(dat.female.ms, .(control), colwise(mean), na.rm=TRUE)
+ddply(dat.female.ms, .(control), colwise(sd), na.rm=TRUE)
+
+#ADDITIONAL SAMPLE SELECTION
+dat.noshow$prob_year1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$prob_year2[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$goodstanding_year1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$goodstanding_year2[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$credits_earned1[dat.noshow$prob_year1 =='.'] = '.'
+dat.noshow$credits_earned2[dat.noshow$prob_year1 =='.'] = '.'
+
+#Sample in all control spec
+dat.noshow <- subset(dat.noshow, sex!="" & mtongue!="" & hsgroup!="." & 
+                       numcourses_nov1!="." & lastmin!="." & mom_edn!="." & dad_edn!=".")
+
+#Creating subsets and data list
+dat.male <- subset(dat.noshow, sex == "M")
+dat.female <- subset(dat.noshow, sex == "F")
+list_data <- list("dat.noshow" = dat.noshow, "dat.male" = dat.male,
+                  "dat.female" = dat.female)
+
+#Panel A. GPA
+model.GPA.one1 <- lm(GPA_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+
+for (i in 2:3) {
+  assign(paste("model.GPA.one", i, sep = ""), 
+         (lm(GPA_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+model.GPA.two1 <- lm(GPA_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+
+for (i in 2:3) {
+  assign(paste("model.GPA.two", i, sep = ""), 
+         (lm(GPA_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+#Custom the table
+custom_table <- function(dataset_labels, ..., cat_output=TRUE, out_file=NULL) {
+  tbl <- capture.output(stargazer::stargazer(...))
+  pattern1 <- 'Dependent variable:'
+  pattern2 <- '(?<= \\& ).+(?= \\\\)'
+  first_row_index <- which(grepl(pattern=pattern1, x=tbl))
+  first_row <- tbl[first_row_index]
+  colspan <- as.numeric(gsub(pattern='[^0-9]+', replacement='', first_row))
+  colspan <- colspan / length(dataset_labels)
+  new_first_row <- sub('[0-9]+', colspan, first_row)
+  replacement <- rep(stringr::str_extract(new_first_row, pattern2), 2)
+  replacement <- stringr::str_replace(replacement, pattern1, dataset_labels)
+  replacement <- paste(replacement, collapse=' & ')
+  new_first_row <- stringr::str_replace(new_first_row, pattern2, replacement)
+  new_first_row <- stringr::str_replace_all(new_first_row, 'multi', '\\\\multi')
+  new_first_row <- stringr::str_replace_all(new_first_row, 'text', '\\\\text')
+  tbl[first_row_index] <- new_first_row
+  if ( cat_output ) {
+    cat(tbl, sep='\n')
+  }
+  if ( !is.null(out_file) ) {
+    cat(tbl, sep='\n', file=out_file)
+  }
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.GPA.one1, model.GPA.one2, model.GPA.one3, 
+             model.GPA.two1, model.GPA.two2, model.GPA.two3, 
+             type = "latex",
+             se = makerobustseslist(model.GPA.one1, model.GPA.one2, model.GPA.one3, 
+                                    model.GPA.two1, model.GPA.two2, model.GPA.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "age", "chooseUTM", "finish4", "work1"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes (Robustness Check): Panel A. GPA", align=TRUE)
+
+#Panel B. On Probation/Withdrew
+model.prob.one1 <- lm(prob_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.prob.one", i, sep = ""), 
+         (lm(prob_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+model.prob.two1 <- lm(prob_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.prob.two", i, sep = ""), 
+         (lm(prob_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.prob.one1, model.prob.one2, model.prob.one3, 
+             model.prob.two1, model.prob.two2, model.prob.two3, 
+             type = "latex",
+             se = makerobustseslist(model.prob.one1, model.prob.one2, model.prob.one3, 
+                                    model.prob.two1, model.prob.two2, model.prob.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "age", "chooseUTM", "finish4", "work1"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes (Robustness Check): Panel B. On Probation/withdrew", 
+             align=TRUE)
+
+#Panel C. Good Standing
+model.gds.one1 <- lm(goodstanding_year1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.gds.one", i, sep = ""), 
+         (lm(goodstanding_year1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+model.gds.two1 <- lm(goodstanding_year2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                       lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.gds.two", i, sep = ""), 
+         (lm(goodstanding_year2 ~ ssp +  sfp + sfsp  + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.gds.one1, model.gds.one2, model.gds.one3, 
+             model.gds.two1, model.gds.two2, model.gds.two3, 
+             type = "latex",
+             se = makerobustseslist(model.gds.one1, model.gds.one2, model.gds.one3, 
+                                    model.gds.two1, model.gds.two2, model.gds.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "age", "chooseUTM", "finish4", "work1"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes (Robustness Check): Panel C. Good standing", 
+             align=TRUE)
+
+#Panel D. Credits Earned
+model.cred.one1 <- lm(credits_earned1 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.cred.one", i, sep = ""), 
+         (lm(credits_earned1 ~ ssp + sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+model.cred.two1 <- lm(credits_earned2 ~ ssp + sfp + sfsp + sex + mtongue + hsgroup + numcourses_nov1 + 
+                        lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = dat.noshow)
+for (i in 2:3) {
+  assign(paste("model.cred.two", i, sep = ""), 
+         (lm(credits_earned2 ~ ssp +  sfp + sfsp + mtongue + hsgroup + numcourses_nov1 + 
+               lastmin + mom_edn + dad_edn + age + chooseUTM + finish4 + work1, data = list_data[[i]])))
+}
+
+custom_table(c('Year 1', 'Year 2'),
+             out_file='test_out.tex',
+             model.cred.one1, model.cred.one2, model.cred.one3, 
+             model.cred.two1, model.cred.two2, model.cred.two3, 
+             type = "latex",
+             se = makerobustseslist(model.cred.one1, model.cred.one2, model.cred.one3, 
+                                    model.cred.two1, model.cred.two2, model.cred.two3, type = "HC1"),
+             omit.stat = c("rsq", "adj.rsq", "f", "ser"),
+             omit = c("sex", "mtongue", "hsgroup", "numcourses_nov1", "lastmin", "mom_edn", "dad_edn", "age", "chooseUTM", "finish4", "work1"),
+             dep.var.labels.include = FALSE,
+             covariate.labels=c("SSP", "SFP", "SFSP", "Constant"),
+             column.labels = c("All", "Men","Women", "All", "Men","Women"),
+             model.names = FALSE,
+             model.numbers = TRUE,
+             no.space = TRUE,
+             title="Treatment Effects on First and Second Year Outcomes (Robustness Check): Panel D. Credits earned", 
+             align=TRUE)
+
+
